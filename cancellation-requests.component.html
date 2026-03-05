@@ -16,15 +16,35 @@
       <p>Click any metric card to filter the table</p>
     </div>
 
-    <app-email-stats
-      [cancellationMode]="true"
-      (statClicked)="handleStatClick($event)"
-      (barClicked)="handleStatClick($event)"
-      [totalToday]="(stats.totalEmailsToday | async) ?? 0"
-      [urgentToday]="(stats.urgentEmailsToday | async) ?? 0"
-      [evergreenToday]="(stats.evergreenToday | async) ?? 0"
-      [nonevergreencancellationToday]="(stats.nonevergreencancellationToday | async) ?? 0">
-    </app-email-stats>
+    <div class="kpi-grid">
+      <button class="kpi kpi-total"
+              [class.active]="activeFilter === 'total'"
+              (click)="onFilter('total')">
+        <span class="kpi-label">Total Emails Received Today</span>
+        <strong>{{ totalToday }}</strong>
+      </button>
+
+      <button class="kpi kpi-urgent"
+              [class.active]="activeFilter === 'urgent'"
+              (click)="onFilter('urgent')">
+        <span class="kpi-label">Urgent Emails Received Today</span>
+        <strong>{{ urgentToday }}</strong>
+      </button>
+
+      <button class="kpi"
+              [class.active]="activeFilter === 'nonevergreencancellation'"
+              (click)="onFilter('nonevergreencancellation')">
+        <span class="kpi-label">Non Evergreen Cancellation Requests Received Today</span>
+        <strong>{{ nonEvergreenCancellationToday }}</strong>
+      </button>
+
+      <button class="kpi"
+              [class.active]="activeFilter === 'cancellation'"
+              (click)="onFilter('cancellation')">
+        <span class="kpi-label">Cancellation Requests Received Today</span>
+        <strong>{{ cancellationToday }}</strong>
+      </button>
+    </div>
   </section>
 
   <section class="middle-grid">
