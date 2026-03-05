@@ -7,14 +7,11 @@ import { map } from 'rxjs/operators';
 import { EmailService } from '../../services/email.service';
 import { EmailDetail } from '../../services/email.service';
 import { EmailDetailComponent } from '../email-detail/email-detail.component';
-import { StatsService } from '../../services/stats.service';
-import { EmailStatsComponent } from '../email-stats/email-stats.component';
 
 @Component({
   selector: 'app-cancellation-requests',
   imports: [
     CommonModule,
-    EmailStatsComponent,
     NgChartsModule,
     TableModule,
     EmailDetailComponent
@@ -26,10 +23,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
 
   @ViewChildren(BaseChartDirective) private charts!: QueryList<BaseChartDirective>;
 
-  constructor(
-    public stats: StatsService,
-    private emailSrv: EmailService
-  ) {}
+  constructor(private emailSrv: EmailService) {}
 
   readonly targetDate: Date = new Date('2026-02-18');
 
@@ -42,6 +36,8 @@ export class CancellationRequests implements OnInit, AfterViewInit {
 
   totalToday = 0;
   urgentToday = 0;
+  nonEvergreenCancellationToday = 0;
+  cancellationToday = 0;
   due24 = 0;
   due48 = 0;
   overdue = 0;
@@ -135,6 +131,23 @@ export class CancellationRequests implements OnInit, AfterViewInit {
     this.urgentToday = this.batchEmails.filter(e =>
       new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       e.EMAIL_CLASSIFICATION === 'Urgent'
+    ).length;
+
+    this.cancellationToday = this.batchEmails.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
+      (
+        e.OPERATION?.toLowerCase() === 'cancel' ||
+        e.OPERATION?.toLowerCase() === 'cancellation'
+      )
+    ).length;
+
+    this.nonEvergreenCancellationToday = this.batchEmails.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
+      (
+        e.OPERATION?.toLowerCase() === 'cancel' ||
+        e.OPERATION?.toLowerCase() === 'cancellation'
+      ) &&
+      e.EVG_CNC_CONTROL_FLAG === 'N'
     ).length;
 
     const d24 = new Date(this.targetDate);
@@ -258,9 +271,27 @@ export class CancellationRequests implements OnInit, AfterViewInit {
 
     this.displayedEmails = this.batchEmails.filter(e => {
       switch (type) {
+        case 'total':
+          return true;
+
         case 'urgent':
           return new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
                  e.EMAIL_CLASSIFICATION === 'Urgent';
+
+        case 'cancellation':
+          return new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
+            (
+              e.OPERATION?.toLowerCase() === 'cancel' ||
+              e.OPERATION?.toLowerCase() === 'cancellation'
+            );
+
+        case 'nonevergreencancellation':
+          return new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
+            (
+              e.OPERATION?.toLowerCase() === 'cancel' ||
+              e.OPERATION?.toLowerCase() === 'cancellation'
+            ) &&
+            e.EVG_CNC_CONTROL_FLAG === 'N';
 
         case 'due24': {
           const d24 = new Date(this.targetDate);
@@ -282,61 +313,6 @@ export class CancellationRequests implements OnInit, AfterViewInit {
       }
     });
 
-    this.totalEmails = this.displayedEmails.length;
-  }
-
-  handleStatClick(
-    type:
-      | 'totalToday'
-      | 'total'
-      | 'urgent'
-      | 'amendments'
-      | 'issuance'
-      | 'sla1'
-      | 'sla2'
-      | 'cancellation'
-      | 'unknown'
-      | 'evergreen'
-      | 'nonevergreencancellation'
-  ): void {
-    const target = this.targetDate.toDateString();
-
-    const predicates: Record<string, (e: EmailDetail) => boolean> = {
-      totalToday: e => new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target,
-      total: () => true,
-      urgent: e =>
-        new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
-        e.EMAIL_CLASSIFICATION === 'Urgent',
-      evergreen: e =>
-        new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
-        !(
-          e.OPERATION?.toLowerCase() === 'cancel' ||
-          e.OPERATION?.toLowerCase() === 'cancellation'
-        ) &&
-        e.EVG_CNC_CONTROL_FLAG === 'Y',
-      nonevergreencancellation: e =>
-        new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
-        (
-          e.OPERATION?.toLowerCase() === 'cancel' ||
-          e.OPERATION?.toLowerCase() === 'cancellation'
-        ) &&
-        e.EVG_CNC_CONTROL_FLAG === 'N',
-      sla1: e => {
-        const d = new Date(this.targetDate);
-        d.setDate(d.getDate() + 1);
-        return new Date(e.SLA_DATE).toDateString() === d.toDateString();
-      },
-      sla2: e => {
-        const d = new Date(this.targetDate);
-        d.setDate(d.getDate() + 2);
-        return new Date(e.SLA_DATE).toDateString() === d.toDateString();
-      }
-    };
-
-    this.activeFilter = type;
-    this.displayedEmails = predicates[type]
-      ? this.batchEmails.filter(predicates[type])
-      : [...this.batchEmails];
     this.totalEmails = this.displayedEmails.length;
   }
 
