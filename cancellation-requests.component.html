@@ -1,0 +1,227 @@
+<div class="dashboard-shell">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Operations Monitor</p>
+      <h1>C4 Controls Agent Dashboard</h1>
+    </div>
+    <div class="date-pill">Snapshot: {{ targetDate | date: 'dd MMM yyyy' }}</div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Today At A Glance</h2>
+      <p>Click any metric card to filter the table</p>
+    </div>
+
+    <app-email-stats
+      [cancellationMode]="true"
+      (statClicked)="handleStatClick($event)"
+      (barClicked)="handleStatClick($event)"
+      [totalToday]="(stats.totalEmailsToday | async) ?? 0"
+      [urgentToday]="(stats.urgentEmailsToday | async) ?? 0"
+      [evergreenToday]="(stats.evergreenToday | async) ?? 0"
+      [nonevergreencancellationToday]="(stats.nonevergreencancellationToday | async) ?? 0">
+    </app-email-stats>
+  </section>
+
+  <section class="middle-grid">
+    <article class="panel sla-card">
+      <div class="panel-head">
+        <h2>SLA Health</h2>
+        <p>Real-time service-level performance</p>
+      </div>
+
+      <div class="sla-container">
+        <div class="sla-chart-wrapper">
+          <canvas
+            baseChart
+            [data]="slaLineData"
+            [options]="slaLineOptions"
+            type="doughnut" chartType="doughnut">
+          </canvas>
+
+          <div class="sla-center-text">
+            <div class="sla-percent">{{ slaPercentage }}%</div>
+            <div class="sla-label">SLA Met</div>
+          </div>
+        </div>
+
+        <div class="sla-side">
+          <p class="muted">Breach Count</p>
+          <strong class="breach-count">{{ slaBreach }}</strong>
+          <div class="sla-trend-wrapper">
+            <canvas
+              baseChart
+              [data]="slaTrendData"
+              [options]="slaTrendOptions"
+              type="line" chartType="line">
+            </canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="sla-footer-strip">
+        <div>Total Emails Received Today</div>
+        <div class="delta">+12 from yesterday</div>
+      </div>
+    </article>
+
+    <article class="panel attention-card">
+      <div class="panel-head">
+        <h2>Immediate Attention</h2>
+        <p>Critical SLA windows and aging items</p>
+      </div>
+
+      <div class="attention-grid">
+        <button class="attention green"
+                [class.active]="activeFilter === 'due24'"
+                (click)="onFilter('due24')">
+          <span>Due in 24 Hrs</span>
+          <strong>{{ due24 }}</strong>
+        </button>
+
+        <button class="attention yellow"
+                [class.active]="activeFilter === 'due48'"
+                (click)="onFilter('due48')">
+          <span>Due in 48 Hrs</span>
+          <strong>{{ due48 }}</strong>
+        </button>
+
+        <button class="attention red"
+                [class.active]="activeFilter === 'overdue'"
+                (click)="onFilter('overdue')">
+          <span>Overdue</span>
+          <strong>{{ overdue }}</strong>
+        </button>
+
+        <button class="attention orange"
+                [class.active]="activeFilter === 'urgent'"
+                (click)="onFilter('urgent')">
+          <span>Urgent</span>
+          <strong>{{ urgentToday }}</strong>
+        </button>
+      </div>
+
+      <div class="attention-insight">
+        <div class="insight-head">
+          <span>Current SLA Pressure Mix</span>
+          <strong>{{ due24 + due48 + overdue + urgentToday }} items</strong>
+        </div>
+
+        <div class="insight-bar">
+          <span class="seg due24" [style.width.%]="(due24 + due48 + overdue + urgentToday) ? (due24 * 100 / (due24 + due48 + overdue + urgentToday)) : 0"></span>
+          <span class="seg due48" [style.width.%]="(due24 + due48 + overdue + urgentToday) ? (due48 * 100 / (due24 + due48 + overdue + urgentToday)) : 0"></span>
+          <span class="seg overdue" [style.width.%]="(due24 + due48 + overdue + urgentToday) ? (overdue * 100 / (due24 + due48 + overdue + urgentToday)) : 0"></span>
+          <span class="seg urgent" [style.width.%]="(due24 + due48 + overdue + urgentToday) ? (urgentToday * 100 / (due24 + due48 + overdue + urgentToday)) : 0"></span>
+        </div>
+
+        <div class="insight-legend">
+          <div><i class="dot due24"></i>Due 24h ({{ due24 }})</div>
+          <div><i class="dot due48"></i>Due 48h ({{ due48 }})</div>
+          <div><i class="dot overdue"></i>Overdue ({{ overdue }})</div>
+          <div><i class="dot urgent"></i>Urgent ({{ urgentToday }})</div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="filter-bar" *ngIf="activeFilter">
+    <div class="filter-info">
+      Active Filter: <strong>{{ activeFilter }}</strong>
+    </div>
+    <button class="clear-btn" (click)="clearFilter()">Clear Filter</button>
+  </section>
+
+  <section class="panel table-card">
+    <p-table
+      [value]="displayedEmails"
+      [loading]="loading"
+      [filterDelay]="300"
+      [paginator]="true"
+      [rows]="10"
+      [totalRecords]="totalEmails"
+      (onPage)="handlePage($event)"
+      [scrollable]="true"
+      scrollHeight="auto"
+      responsiveLayout="scroll"
+      class="compact-table custom-header modern-table">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th
+            *ngFor="let col of cols"
+            [pSortableColumn]="col.field"
+            [ngClass]="{
+              'sender-col': col.field === 'SENDER',
+              'operation-col': col.field === 'OPERATION'
+            }">
+            <div class="table-head-cell">
+              {{ col.header }}
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+            </div>
+          </th>
+        </tr>
+
+        <tr>
+          <th
+            *ngFor="let col of cols"
+            [ngClass]="{
+              'sender-col': col.field === 'SENDER',
+              'operation-col': col.field === 'OPERATION'
+            }">
+            <div class="filter-wrapper">
+              <i class="pi pi-search"></i>
+              <p-columnFilter
+                [field]="col.field"
+                type="text"
+                [showMenu]="false"
+                class="filter-input">
+              </p-columnFilter>
+            </div>
+          </th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td
+            *ngFor="let col of cols"
+            (click)="openDetail(row)"
+            [ngClass]="{
+              'center-cell': col.align === 'center',
+              'sender-col': col.field === 'SENDER',
+              'operation-col': col.field === 'OPERATION'
+            }">
+
+            <ng-container *ngIf="col.field === 'SLAMEET'; else defaultCell">
+              <span
+                class="sla-icon"
+                [ngClass]="row[col.field] === 'Y' ? 'sla-ok' : 'sla-nok'">
+                {{ row[col.field] === 'Y' ? '✔' : '✘' }}
+              </span>
+            </ng-container>
+
+            <ng-template #defaultCell>
+              {{ row[col.field] }}
+            </ng-template>
+
+          </td>
+        </tr>
+      </ng-template>
+
+    </p-table>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="selectedRow" (click)="closeDetail()"></div>
+
+<div class="modal-window" *ngIf="selectedRow">
+  <app-email-detail
+    [rowId]="selectedRow.ROW_ID"
+    [control]="'cancel'"
+    (close)="closeDetail()">
+  </app-email-detail>
+</div>
