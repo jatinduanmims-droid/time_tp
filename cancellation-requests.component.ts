@@ -37,6 +37,8 @@ export class CancellationRequests implements OnInit, AfterViewInit {
   totalToday = 0;
   urgentToday = 0;
   nonEvergreenCancellationToday = 0;
+  // Backward-compatible alias used by earlier template variants
+  nonevergreencancellationToday = 0;
   cancellationToday = 0;
   due24 = 0;
   due48 = 0;
@@ -149,6 +151,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
       ) &&
       e.EVG_CNC_CONTROL_FLAG === 'N'
     ).length;
+    this.nonevergreencancellationToday = this.nonEvergreenCancellationToday;
 
     const d24 = new Date(this.targetDate);
     d24.setDate(d24.getDate() + 1);
