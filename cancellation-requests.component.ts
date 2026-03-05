@@ -100,7 +100,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
             SLA_DATE_FMT: this.formatDate(email.SLA_DATE),
             EMAIL_RECEIVEDTIME_FMT: this.formatDate(email.EMAIL_RECEIVEDTIME),
             APPROVEDATE_FMT: email.APPROVEDATE ? this.formatDate(email.APPROVEDATE) : '',
-            SLAMEET: (email as any).SLAMEET ?? email.SLA_MET ?? ''
+            SLAMEET: this.normalizeSlaValue((email as any).SLAMEET ?? email.SLA_MET)
           } as EmailDetail))
         )
       )
@@ -169,11 +169,17 @@ export class CancellationRequests implements OnInit, AfterViewInit {
 
     this.overdue = this.batchEmails.filter(e =>
       new Date(e.SLA_DATE) < this.targetDate &&
-      e.SLA_MET !== 'Y'
+      this.normalizeSlaValue((e as any).SLAMEET ?? e.SLA_MET) !== 'Y'
     ).length;
 
-    this.slaMet = this.batchEmails.filter(e => e.SLA_MET === 'Y').length;
-    this.slaBreach = this.batchEmails.filter(e => e.SLA_MET === 'N').length;
+    this.slaMet = this.batchEmails.filter(e =>
+      this.normalizeSlaValue((e as any).SLAMEET ?? e.SLA_MET) === 'Y'
+    ).length;
+
+    // Count null/blank/unknown SLA values as breach.
+    this.slaBreach = this.batchEmails.filter(e =>
+      this.normalizeSlaValue((e as any).SLAMEET ?? e.SLA_MET) !== 'Y'
+    ).length;
 
     const totalSla = this.slaMet + this.slaBreach;
     this.slaPercentage = totalSla ? Math.round((this.slaMet / totalSla) * 100) : 0;
@@ -373,5 +379,10 @@ export class CancellationRequests implements OnInit, AfterViewInit {
     const month = d.toLocaleString('en-us', { month: 'short' }).toUpperCase();
     const year = d.getFullYear().toString().slice(-2);
     return `${day}-${month}-${year}`;
+  }
+
+  private normalizeSlaValue(value: unknown): 'Y' | 'N' {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    return normalized === 'Y' ? 'Y' : 'N';
   }
 }
