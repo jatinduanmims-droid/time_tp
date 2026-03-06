@@ -34,6 +34,8 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   totalEmails = 0;
   tableFirst = 0;
   tableRows = 10;
+  private suppressPageEvent = false;
+  private pendingRestoreFirst: number | null = null;
 
   // =========================
   // KPI COUNTERS
@@ -118,6 +120,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
         this.displayedEmails = [...this.batchEmails];
         this.totalEmails = this.batchEmails.length;
         this.ensureValidTablePage();
+        this.restoreTablePageIfNeeded();
 
         this.calculateKpis();
         this.buildCharts();
@@ -365,11 +368,15 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   }
 
   closeDetail(): void {
+    this.pendingRestoreFirst = this.tableFirst;
     this.selectedRow = undefined;
     this.loadBatchEmails();
   }
 
   handlePage(event: any): void {
+    if (this.suppressPageEvent) {
+      return;
+    }
     this.tableFirst = event.first ?? 0;
     this.tableRows = event.rows ?? this.tableRows;
   }
@@ -386,6 +393,26 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     if (this.tableFirst > maxFirst) {
       this.tableFirst = maxFirst;
     }
+  }
+
+  private restoreTablePageIfNeeded(): void {
+    if (this.pendingRestoreFirst === null) {
+      return;
+    }
+
+    const desiredFirst = this.pendingRestoreFirst;
+    this.pendingRestoreFirst = null;
+
+    const maxFirst = this.totalEmails > 0
+      ? Math.floor((this.totalEmails - 1) / this.tableRows) * this.tableRows
+      : 0;
+    const restoredFirst = Math.min(desiredFirst, maxFirst);
+
+    this.suppressPageEvent = true;
+    this.tableFirst = restoredFirst;
+    setTimeout(() => {
+      this.suppressPageEvent = false;
+    }, 0);
   }
 
   private refreshChartLayout(): void {
