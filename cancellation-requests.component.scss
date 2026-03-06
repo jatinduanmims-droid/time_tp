@@ -680,3 +680,22 @@
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
   z-index: 1201;
 }
+
+/* Strong active-page visibility for paginator */
+:host ::ng-deep .modern-table .p-paginator .p-paginator-page.p-highlight,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-page[aria-current='page'] {
+  background: linear-gradient(132deg, var(--brand-dark), var(--brand)) !important;
+  border-color: var(--brand) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(15, 122, 85, 0.18), 0 6px 14px rgba(15, 122, 85, 0.25);
+}
+
+:host ::ng-deep .modern-table .p-paginator .p-paginator-current {
+  background: #ffffff;
+  border: 1px solid #d5e3dc;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 600;
+  color: #28453a;
+}
