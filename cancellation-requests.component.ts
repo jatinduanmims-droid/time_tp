@@ -1,8 +1,8 @@
-import { AfterViewInit, Component, HostListener, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, HostListener, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
-import { TableModule } from 'primeng/table';
+import { Table, TableModule } from 'primeng/table';
 import { map } from 'rxjs/operators';
 import { EmailService } from '../../services/email.service';
 import { EmailDetail } from '../../services/email.service';
@@ -22,6 +22,7 @@ import { EmailDetailComponent } from '../email-detail/email-detail.component';
 export class CancellationRequests implements OnInit, AfterViewInit {
 
   @ViewChildren(BaseChartDirective) private charts!: QueryList<BaseChartDirective>;
+  @ViewChild('dt') private dataTable?: Table;
 
   constructor(private emailSrv: EmailService) {}
 
@@ -33,6 +34,10 @@ export class CancellationRequests implements OnInit, AfterViewInit {
   loading = false;
   selectedRow?: EmailDetail;
   totalEmails = 0;
+  tableFirst = 0;
+  tableRows = 10;
+  private suppressPageEvent = false;
+  private pendingRestoreFirst: number | null = null;
 
   totalToday = 0;
   urgentToday = 0;
@@ -73,12 +78,14 @@ export class CancellationRequests implements OnInit, AfterViewInit {
       } else {
         this.displayedEmails = [...this.batchEmails];
         this.totalEmails = this.displayedEmails.length;
+        this.ensureValidTablePage();
       }
     });
   }
 
   ngAfterViewInit(): void {
     this.refreshChartLayout();
+    this.applyPaginatorState(this.tableFirst);
   }
 
   @HostListener('window:resize')
@@ -109,6 +116,8 @@ export class CancellationRequests implements OnInit, AfterViewInit {
           this.batchEmails = data;
           this.displayedEmails = [...data];
           this.totalEmails = data.length;
+          this.ensureValidTablePage();
+          this.restoreTablePageIfNeeded();
 
           this.calculateKpis();
           this.buildCharts();
@@ -323,6 +332,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
     });
 
     this.totalEmails = this.displayedEmails.length;
+    this.ensureValidTablePage();
   }
 
   clearFilter(): void {
@@ -330,6 +340,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
     this.emailSrv.emitRowIdFilter([]);
     this.displayedEmails = [...this.batchEmails];
     this.totalEmails = this.displayedEmails.length;
+    this.ensureValidTablePage();
   }
 
   openDetail(row: EmailDetail): void {
@@ -337,12 +348,17 @@ export class CancellationRequests implements OnInit, AfterViewInit {
   }
 
   closeDetail(): void {
+    this.pendingRestoreFirst = this.tableFirst;
     this.selectedRow = undefined;
     this.loadBatchCancellations();
   }
 
-  handlePage(_event: any): void {
-    // Reserved for pagination hooks.
+  handlePage(event: any): void {
+    if (this.suppressPageEvent || (this.loading && this.pendingRestoreFirst !== null)) {
+      return;
+    }
+    this.tableFirst = event.first ?? 0;
+    this.tableRows = event.rows ?? this.tableRows;
   }
 
   private applyRowIdFilter(ids: number[]): void {
@@ -355,6 +371,7 @@ export class CancellationRequests implements OnInit, AfterViewInit {
     );
 
     this.totalEmails = this.displayedEmails.length;
+    this.ensureValidTablePage();
   }
 
   private refreshChartLayout(): void {
@@ -384,5 +401,53 @@ export class CancellationRequests implements OnInit, AfterViewInit {
   private normalizeSlaValue(value: unknown): 'Y' | 'N' {
     const normalized = String(value ?? '').trim().toUpperCase();
     return normalized === 'Y' ? 'Y' : 'N';
+  }
+
+  private ensureValidTablePage(): void {
+    if (this.tableRows <= 0) {
+      this.tableRows = 10;
+    }
+
+    const maxFirst = this.totalEmails > 0
+      ? Math.floor((this.totalEmails - 1) / this.tableRows) * this.tableRows
+      : 0;
+
+    if (this.tableFirst > maxFirst) {
+      this.tableFirst = maxFirst;
+    }
+
+    this.applyPaginatorState(this.tableFirst);
+  }
+
+  private restoreTablePageIfNeeded(): void {
+    if (this.pendingRestoreFirst === null) {
+      return;
+    }
+
+    const desiredFirst = this.pendingRestoreFirst;
+    this.pendingRestoreFirst = null;
+
+    const maxFirst = this.totalEmails > 0
+      ? Math.floor((this.totalEmails - 1) / this.tableRows) * this.tableRows
+      : 0;
+    const restoredFirst = Math.min(desiredFirst, maxFirst);
+
+    this.suppressPageEvent = true;
+    this.applyPaginatorState(restoredFirst);
+    setTimeout(() => {
+      this.applyPaginatorState(restoredFirst);
+    }, 0);
+    setTimeout(() => {
+      this.applyPaginatorState(restoredFirst);
+      this.suppressPageEvent = false;
+    }, 120);
+  }
+
+  private applyPaginatorState(first: number): void {
+    this.tableFirst = first;
+    if (this.dataTable) {
+      this.dataTable.rows = this.tableRows;
+      this.dataTable.first = first;
+    }
   }
 }
