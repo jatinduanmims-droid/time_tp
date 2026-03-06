@@ -171,11 +171,13 @@
 
   <section class="panel table-card">
     <p-table
+      #dt
       [value]="displayedEmails"
       [loading]="loading"
       [filterDelay]="300"
       [paginator]="true"
-      [rows]="10"
+      [rows]="tableRows"
+      [first]="tableFirst"
       [totalRecords]="totalEmails"
       (onPage)="handlePage($event)"
       [scrollable]="true"
