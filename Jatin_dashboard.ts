@@ -1,10 +1,10 @@
-import { AfterViewInit, Component, HostListener, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, HostListener, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EmailService } from '../services/email.service';
 import { EmailDetail } from '../services/email.service';
 import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
-import { TableModule } from 'primeng/table';
+import { Table, TableModule } from 'primeng/table';
 import { EmailDetailComponent } from '../email-detail/email-detail.component';
 
 @Component({
@@ -17,6 +17,7 @@ import { EmailDetailComponent } from '../email-detail/email-detail.component';
 export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   @ViewChildren(BaseChartDirective) private charts!: QueryList<BaseChartDirective>;
+  @ViewChild('dt') private dataTable?: Table;
 
   // =========================
   // DEMO STABLE DATE
@@ -89,6 +90,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.refreshChartLayout();
+    this.applyPaginatorState(this.tableFirst);
   }
 
   @HostListener('window:resize')
@@ -393,6 +395,8 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     if (this.tableFirst > maxFirst) {
       this.tableFirst = maxFirst;
     }
+
+    this.applyPaginatorState(this.tableFirst);
   }
 
   private restoreTablePageIfNeeded(): void {
@@ -409,11 +413,22 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     const restoredFirst = Math.min(desiredFirst, maxFirst);
 
     this.suppressPageEvent = true;
-    this.tableFirst = restoredFirst;
+    this.applyPaginatorState(restoredFirst);
     setTimeout(() => {
-      this.tableFirst = restoredFirst;
+      this.applyPaginatorState(restoredFirst);
+    }, 0);
+    setTimeout(() => {
+      this.applyPaginatorState(restoredFirst);
       this.suppressPageEvent = false;
-    }, 80);
+    }, 120);
+  }
+
+  private applyPaginatorState(first: number): void {
+    this.tableFirst = first;
+    if (this.dataTable) {
+      this.dataTable.rows = this.tableRows;
+      this.dataTable.first = first;
+    }
   }
 
   private refreshChartLayout(): void {
