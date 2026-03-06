@@ -374,7 +374,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   }
 
   handlePage(event: any): void {
-    if (this.suppressPageEvent) {
+    if (this.suppressPageEvent || (this.loading && this.pendingRestoreFirst !== null)) {
       return;
     }
     this.tableFirst = event.first ?? 0;
@@ -411,8 +411,9 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     this.suppressPageEvent = true;
     this.tableFirst = restoredFirst;
     setTimeout(() => {
+      this.tableFirst = restoredFirst;
       this.suppressPageEvent = false;
-    }, 0);
+    }, 80);
   }
 
   private refreshChartLayout(): void {
