@@ -32,6 +32,8 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   loading = false;
   selectedRow?: EmailDetail;
   totalEmails = 0;
+  tableFirst = 0;
+  tableRows = 10;
 
   // =========================
   // KPI COUNTERS
@@ -115,6 +117,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
         this.displayedEmails = [...this.batchEmails];
         this.totalEmails = this.batchEmails.length;
+        this.ensureValidTablePage();
 
         this.calculateKpis();
         this.buildCharts();
@@ -347,12 +350,14 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     });
 
     this.totalEmails = this.displayedEmails.length;
+    this.ensureValidTablePage();
   }
 
   clearFilter(): void {
     this.activeFilter = null;
     this.displayedEmails = [...this.batchEmails];
     this.totalEmails = this.displayedEmails.length;
+    this.ensureValidTablePage();
   }
 
   openDetail(row: EmailDetail): void {
@@ -364,8 +369,23 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     this.loadBatchEmails();
   }
 
-  handlePage(_event: any): void {
-    // Reserved for pagination hooks.
+  handlePage(event: any): void {
+    this.tableFirst = event.first ?? 0;
+    this.tableRows = event.rows ?? this.tableRows;
+  }
+
+  private ensureValidTablePage(): void {
+    if (this.tableRows <= 0) {
+      this.tableRows = 10;
+    }
+
+    const maxFirst = this.totalEmails > 0
+      ? Math.floor((this.totalEmails - 1) / this.tableRows) * this.tableRows
+      : 0;
+
+    if (this.tableFirst > maxFirst) {
+      this.tableFirst = maxFirst;
+    }
   }
 
   private refreshChartLayout(): void {
