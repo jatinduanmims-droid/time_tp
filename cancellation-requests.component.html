@@ -165,6 +165,8 @@
       [rows]="tableRows"
       [first]="tableFirst"
       [totalRecords]="totalEmails"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Page {currentPage} of {totalPages}"
       (onPage)="handlePage($event)"
       [scrollable]="true"
       scrollHeight="auto"
