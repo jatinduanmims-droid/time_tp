@@ -139,14 +139,15 @@
 .table-wrap {
   border: 1px solid var(--line-soft);
   border-radius: 12px;
-  overflow: auto;
+  overflow: hidden;
   background: #f1f5f2;
 }
 
 .horizontal-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1320px;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .horizontal-table thead th {
@@ -159,15 +160,18 @@
   text-align: left;
   padding: 10px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .horizontal-table tbody td {
   font-size: clamp(12px, 0.95vw, 18px);
   color: #2d4038;
-  padding: 10px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .right-align {
@@ -210,11 +214,12 @@
 }
 
 .compact {
-  min-height: 220px;
+  min-height: 190px;
+  padding: 10px;
 }
 
 .field {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .label {
@@ -235,7 +240,7 @@
 ::ng-deep .priority-group .mat-mdc-radio-button {
   border: 1px solid var(--line);
   border-radius: 12px;
-  height: 44px;
+  height: 38px;
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -288,9 +293,9 @@
 }
 
 ::ng-deep .inline-actions .mdc-button {
-  min-width: 100px;
+  min-width: 92px;
   border-radius: 12px;
-  height: 40px;
+  height: 36px;
 }
 
 ::ng-deep .inline-actions .primary {
@@ -329,10 +334,14 @@
   padding: 12px;
 }
 
+.email-view.collapsed .optional-meta {
+  display: none;
+}
+
 .email-head {
   display: grid;
   gap: 0;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   border: 1px solid var(--line-soft);
   border-radius: 12px;
   background: #f3f6f4;
@@ -366,6 +375,7 @@
 }
 
 .thread {
+  margin-top: 10px;
   min-height: 140px;
   border: 1px solid var(--line-soft);
   border-radius: 14px;
@@ -421,6 +431,12 @@
 
   .review-row {
     grid-template-columns: 1fr;
+  }
+
+  .horizontal-table thead th,
+  .horizontal-table tbody td {
+    font-size: 11px;
+    padding: 6px 4px;
   }
 
   .thread-head {
