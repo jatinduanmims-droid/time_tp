@@ -157,19 +157,16 @@
         </button>
       </div>
 
-      <div class="email-view">
+      <div class="email-view" [class.collapsed]="!showChain">
         <div class="email-head">
           <div class="email-row"><span class="key">FROM</span><span class="val">{{ firstDetail?.SENDER || '-' }}</span></div>
           <div class="email-row"><span class="key">SUBJECT</span><span class="val">{{ firstDetail?.SUBJECT || '-' }}</span></div>
           <div class="email-row"><span class="key">RECEIVED</span><span class="val">{{ firstDetail?.EMAIL_RECEIVEDTIME || '-' }}</span></div>
-          <div class="email-row"><span class="key">REF NO</span><span class="val">{{ firstDetail?.LC_REFERENCE_NUMBER || 'Missing' }}</span></div>
-          <div class="email-row"><span class="key">PRODUCT</span><span class="val">{{ firstDetail?.PRODUCT || '-' }}</span></div>
+          <div class="email-row optional-meta"><span class="key">REF NO</span><span class="val">{{ firstDetail?.LC_REFERENCE_NUMBER || 'Missing' }}</span></div>
+          <div class="email-row optional-meta"><span class="key">PRODUCT</span><span class="val">{{ firstDetail?.PRODUCT || '-' }}</span></div>
         </div>
 
-        <div class="thread" *ngIf="showChain; else previewChain" [innerHTML]="firstDetail?.BODY"></div>
-        <ng-template #previewChain>
-          <div class="thread preview" [innerHTML]="firstDetail?.BODY"></div>
-        </ng-template>
+        <div class="thread" *ngIf="showChain" [innerHTML]="firstDetail?.BODY"></div>
       </div>
     </article>
   </section>
