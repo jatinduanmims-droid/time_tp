@@ -10,8 +10,8 @@ START_MARKER = "ODCDataLoader initialized"
 END_MARKER = "finished loading"
 
 # Regex patterns
-symbol_pattern = re.compile(r'"([A-Z0-9\-]+)"')
-fx_line_pattern = re.compile(r"value from MT:.*?,\s*([A-Z0-9\-]+):\s*\[(.*?)\]", re.IGNORECASE)
+symbol_pattern = re.compile(r'"([^"]+)"')
+fx_line_pattern = re.compile(r"value from MT:.*?,\s*([A-Z0-9=\-]+):\s*\[(.*?)\]", re.IGNORECASE)
 count_pattern = re.compile(r"finished loading (\d+) FX rate")
 
 
@@ -24,9 +24,15 @@ def load_symbols():
 
     with open(SYMBOL_FILE, "r") as f:
         for line in f:
-            match = symbol_pattern.search(line)
-            if match:
-                symbols.add(match.group(1))
+
+            matches = symbol_pattern.findall(line)
+
+            for m in matches:
+
+                clean = m.strip()
+
+                if clean.lower() != "symbol":
+                    symbols.add(clean)
 
     return symbols
 
@@ -51,7 +57,6 @@ def parse_log():
             if not start_reading:
                 continue
 
-            # Detect FX values
             match = fx_line_pattern.search(line)
 
             if match:
@@ -63,7 +68,6 @@ def parse_log():
                 else:
                     parsed_status[symbol] = "VALID"
 
-            # Detect finished loading count
             count_match = count_pattern.search(line)
 
             if count_match:
@@ -117,18 +121,22 @@ def detect_transitions(previous, current):
 
 
 # -----------------------------
-# Main Logic
+# Main
 # -----------------------------
 def main():
 
     expected_symbols = load_symbols()
 
+    if not expected_symbols:
+        print("ERROR: No symbols loaded from FXsymbol.list")
+        return
+
     parsed_status, fx_count = parse_log()
 
-    # Initialize all symbols as MISSING
+    # initialize all as MISSING
     current_state = {symbol: "MISSING" for symbol in expected_symbols}
 
-    # Update with parsed results
+    # update with parsed values
     for symbol, status in parsed_status.items():
         current_state[symbol] = status
 
@@ -140,16 +148,17 @@ def main():
     print(" FX RATE MONITOR REPORT")
     print("==============================\n")
 
-    # Sanity check
+    print("Expected symbols:", len(expected_symbols))
+    print("Parsed FX symbols:", len(parsed_status))
+
     if fx_count is not None:
-        print(f"FX rates loaded according to log: {fx_count}")
+        print("FX rates loaded according to log:", fx_count)
 
         if fx_count < len(expected_symbols):
             print("WARNING: FX count lower than expected!")
 
-    # Alerts
     if not invalid_alerts and not missing_alerts:
-        print("No new FX issues detected.")
+        print("\nNo new FX issues detected.")
 
     if invalid_alerts:
 
@@ -197,7 +206,6 @@ def main():
         smtp.quit()
         """
 
-    # Save state for next run
     save_state(current_state)
 
 
