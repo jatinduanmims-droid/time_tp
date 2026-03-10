@@ -7,118 +7,188 @@ SYMBOL_FILE = "FXsymbol.list"
 STATE_FILE = "fx_state.json"
 
 START_MARKER = "ODCDataLoader initialized"
-END_MARKER = "finished loading 192 FX rate"
+END_MARKER = "finished loading"
 
-pattern = re.compile(r"value from MT:.*?,\s*([A-Z0-9\-]+):\s*\[(.*?)\]")
+# Regex patterns
+symbol_pattern = re.compile(r'"([A-Z0-9\-]+)"')
+fx_line_pattern = re.compile(r"value from MT:.*?,\s*([A-Z0-9\-]+):\s*\[(.*?)\]", re.IGNORECASE)
+count_pattern = re.compile(r"finished loading (\d+) FX rate")
 
 
+# -----------------------------
+# Load symbols from FXsymbol.list
+# -----------------------------
 def load_symbols():
 
-    symbols = []
+    symbols = set()
 
     with open(SYMBOL_FILE, "r") as f:
         for line in f:
-
-            match = re.search(r'"([A-Z0-9\-]+)"', line)
-
+            match = symbol_pattern.search(line)
             if match:
-                symbols.append(match.group(1))
+                symbols.add(match.group(1))
 
-    return set(symbols)
+    return symbols
 
 
+# -----------------------------
+# Parse FX log
+# -----------------------------
 def parse_log():
 
-    start = False
-    status = {}
+    start_reading = False
+    parsed_status = {}
+    fx_count = None
 
     with open(LOG_FILE, "r") as f:
 
         for line in f:
 
             if START_MARKER in line:
-                start = True
+                start_reading = True
                 continue
 
-            if END_MARKER in line:
-                break
-
-            if not start:
+            if not start_reading:
                 continue
 
-            match = pattern.search(line)
+            # Detect FX values
+            match = fx_line_pattern.search(line)
 
             if match:
-
                 symbol = match.group(1)
                 values = match.group(2)
 
                 if "#InvalidRecord" in values:
-                    status[symbol] = "INVALID"
+                    parsed_status[symbol] = "INVALID"
                 else:
-                    status[symbol] = "VALID"
+                    parsed_status[symbol] = "VALID"
 
-    return status
+            # Detect finished loading count
+            count_match = count_pattern.search(line)
+
+            if count_match:
+                fx_count = int(count_match.group(1))
+                break
+
+    return parsed_status, fx_count
 
 
-def load_previous():
+# -----------------------------
+# Load previous state
+# -----------------------------
+def load_previous_state():
 
     if not os.path.exists(STATE_FILE):
         return {}
 
-    with open(STATE_FILE) as f:
+    with open(STATE_FILE, "r") as f:
         return json.load(f)
 
 
+# -----------------------------
+# Save current state
+# -----------------------------
 def save_state(state):
 
     with open(STATE_FILE, "w") as f:
         json.dump(state, f, indent=2)
 
 
-def detect_alerts(previous, current):
+# -----------------------------
+# Detect state transitions
+# -----------------------------
+def detect_transitions(previous, current):
 
-    alerts = []
+    invalid_alerts = []
+    missing_alerts = []
 
-    for symbol, curr_status in current.items():
+    for symbol in current:
 
         prev_status = previous.get(symbol)
+        curr_status = current[symbol]
 
         if prev_status == "VALID" and curr_status == "INVALID":
-            alerts.append(symbol)
+            invalid_alerts.append(symbol)
 
-    return alerts
+        if prev_status == "VALID" and curr_status == "MISSING":
+            missing_alerts.append(symbol)
+
+    return invalid_alerts, missing_alerts
 
 
+# -----------------------------
+# Main Logic
+# -----------------------------
 def main():
 
-    expected = load_symbols()
-    current = parse_log()
-    previous = load_previous()
+    expected_symbols = load_symbols()
 
-    alerts = detect_alerts(previous, current)
+    parsed_status, fx_count = parse_log()
 
-    print("\nFX MONITOR REPORT\n")
+    # Initialize all symbols as MISSING
+    current_state = {symbol: "MISSING" for symbol in expected_symbols}
 
-    if alerts:
+    # Update with parsed results
+    for symbol, status in parsed_status.items():
+        current_state[symbol] = status
 
-        print("Currencies became INVALID today:\n")
+    previous_state = load_previous_state()
 
-        for a in alerts:
-            print("-", a)
+    invalid_alerts, missing_alerts = detect_transitions(previous_state, current_state)
 
-        message = "FX ALERT: Currency became invalid\n\n"
+    print("\n==============================")
+    print(" FX RATE MONITOR REPORT")
+    print("==============================\n")
 
-        for a in alerts:
-            message += f"{a}\n"
+    # Sanity check
+    if fx_count is not None:
+        print(f"FX rates loaded according to log: {fx_count}")
 
-        # Email logic (commented)
+        if fx_count < len(expected_symbols):
+            print("WARNING: FX count lower than expected!")
+
+    # Alerts
+    if not invalid_alerts and not missing_alerts:
+        print("No new FX issues detected.")
+
+    if invalid_alerts:
+
+        print("\nCurrencies became INVALID today:\n")
+
+        for c in invalid_alerts:
+            print("-", c)
+
+    if missing_alerts:
+
+        print("\nCurrencies became MISSING today:\n")
+
+        for c in missing_alerts:
+            print("-", c)
+
+    # Prepare email message
+    if invalid_alerts or missing_alerts:
+
+        message = "FX RATE ALERT\n\n"
+
+        if invalid_alerts:
+            message += "Currencies became INVALID:\n"
+            for c in invalid_alerts:
+                message += f"{c}\n"
+
+        if missing_alerts:
+            message += "\nCurrencies became MISSING:\n"
+            for c in missing_alerts:
+                message += f"{c}\n"
+
+        # -------------------------
+        # EMAIL ALERT (COMMENTED)
+        # -------------------------
         """
         from email.mime.text import MIMEText
         import smtplib
 
         msg = MIMEText(message)
-        msg['Subject'] = 'FX Rate Alert'
+        msg['Subject'] = 'FX Rate Monitoring Alert'
         msg['From'] = 'fx-monitor@company.com'
         msg['To'] = 'ops-team@company.com'
 
@@ -127,10 +197,8 @@ def main():
         smtp.quit()
         """
 
-    else:
-        print("No new invalid currencies.")
-
-    save_state(current)
+    # Save state for next run
+    save_state(current_state)
 
 
 if __name__ == "__main__":
