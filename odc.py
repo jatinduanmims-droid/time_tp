@@ -1,10 +1,10 @@
-import yaml
 import re
-#from email.mime.text import MIMEText
-#import smtplib
+import json
+import os
 
 LOG_FILE = "fx_log.log"
-YAML_FILE = "currencies.yaml"
+SYMBOL_FILE = "FXsymbol.list"
+STATE_FILE = "fx_state.json"
 
 START_MARKER = "ODCDataLoader initialized"
 END_MARKER = "finished loading 192 FX rate"
@@ -12,18 +12,25 @@ END_MARKER = "finished loading 192 FX rate"
 pattern = re.compile(r"value from MT:.*?,\s*([A-Z0-9\-]+):\s*\[(.*?)\]")
 
 
-def load_yaml():
-    with open(YAML_FILE, "r") as f:
-        data = yaml.safe_load(f)
+def load_symbols():
 
-    return set(data["symbols"])
+    symbols = []
+
+    with open(SYMBOL_FILE, "r") as f:
+        for line in f:
+
+            match = re.search(r'"([A-Z0-9\-]+)"', line)
+
+            if match:
+                symbols.append(match.group(1))
+
+    return set(symbols)
 
 
 def parse_log():
 
     start = False
-    found = {}
-    invalid = set()
+    status = {}
 
     with open(LOG_FILE, "r") as f:
 
@@ -42,74 +49,89 @@ def parse_log():
             match = pattern.search(line)
 
             if match:
+
                 symbol = match.group(1)
                 values = match.group(2)
 
-                found[symbol] = True
-
                 if "#InvalidRecord" in values:
-                    invalid.add(symbol)
+                    status[symbol] = "INVALID"
+                else:
+                    status[symbol] = "VALID"
 
-    return found, invalid
+    return status
 
 
-def validate():
+def load_previous():
 
-    expected = load_yaml()
-    found, invalid = parse_log()
+    if not os.path.exists(STATE_FILE):
+        return {}
 
-    found_set = set(found.keys())
+    with open(STATE_FILE) as f:
+        return json.load(f)
 
-    missing = expected - found_set
-    invalid_detected = expected.intersection(invalid)
 
-    print("\n==============================")
-    print(" FX RATE VALIDATION REPORT")
-    print("==============================\n")
+def save_state(state):
 
-    if not missing and not invalid_detected:
-        print("All FX rates loaded successfully.")
-        return
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
 
-    if missing:
-        print("Missing currencies:")
-        for m in sorted(missing):
-            print(" -", m)
 
-    if invalid_detected:
-        print("\nInvalid currencies (#InvalidRecord):")
-        for i in sorted(invalid_detected):
-            print(" -", i)
+def detect_alerts(previous, current):
 
-    message = "FX RATE VALIDATION FAILED\n\n"
+    alerts = []
 
-    if missing:
-        message += "Missing currencies:\n"
-        for m in missing:
-            message += f"{m}\n"
+    for symbol, curr_status in current.items():
 
-    if invalid_detected:
-        message += "\nInvalid currencies:\n"
-        for i in invalid_detected:
-            message += f"{i}\n"
+        prev_status = previous.get(symbol)
 
-    # -------------------------
-    # EMAIL ALERT (COMMENTED)
-    # -------------------------
+        if prev_status == "VALID" and curr_status == "INVALID":
+            alerts.append(symbol)
 
-    """
-    msg = MIMEText(message)
-    msg['Subject'] = 'FX Rate Validation Alert'
-    msg['From'] = 'fx-monitor@company.com'
-    msg['To'] = 'ops-team@company.com'
+    return alerts
 
-    smtp = smtplib.SMTP('smtp.company.com')
-    smtp.send_message(msg)
-    smtp.quit()
-    """
 
-    print("\nALERT GENERATED")
+def main():
+
+    expected = load_symbols()
+    current = parse_log()
+    previous = load_previous()
+
+    alerts = detect_alerts(previous, current)
+
+    print("\nFX MONITOR REPORT\n")
+
+    if alerts:
+
+        print("Currencies became INVALID today:\n")
+
+        for a in alerts:
+            print("-", a)
+
+        message = "FX ALERT: Currency became invalid\n\n"
+
+        for a in alerts:
+            message += f"{a}\n"
+
+        # Email logic (commented)
+        """
+        from email.mime.text import MIMEText
+        import smtplib
+
+        msg = MIMEText(message)
+        msg['Subject'] = 'FX Rate Alert'
+        msg['From'] = 'fx-monitor@company.com'
+        msg['To'] = 'ops-team@company.com'
+
+        smtp = smtplib.SMTP('smtp.company.com')
+        smtp.send_message(msg)
+        smtp.quit()
+        """
+
+    else:
+        print("No new invalid currencies.")
+
+    save_state(current)
 
 
 if __name__ == "__main__":
-    validate()
+    main()
