@@ -1,4 +1,14 @@
+/*
+  EMAIL DETAIL COMPONENT STYLES
+  -------------------------------------------------------------------
+  Quick width controls (most important):
+  1) .email-detail-overlay width/min-width  -> overall modal content width
+  2) .horizontal-table min-width            -> LC table width before scrolling
+  3) .modal/window in parent (outside file) -> outer popup cap (if any)
+*/
+
 :host {
+  /* Color tokens for the full component theme */
   --bg: #eef3ef;
   --card-bg: #edf1ee;
   --line: #c8d4cd;
@@ -18,23 +28,40 @@
   font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
 }
 
+/*
+  MAIN CONTAINER
+  -------------------------------------------------------------------
+  This is the root visible box of email-detail inside the popup.
+  Increase/decrease width here for desktop fit.
+*/
 .email-detail-overlay {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(12, 48, 35, 0.08);
+
+  /* Primary width knobs */
+  width: 1650px;     /* Increase for more horizontal space */
+  min-width: 1650px; /* Keep table/content from collapsing */
+  max-width: none;   /* Do not auto-shrink container */
 }
 
+/*
+  HEADER BAR
+  -------------------------------------------------------------------
+  Top green section with close button, title, subtitle, and chips.
+*/
 .head {
   background: linear-gradient(90deg, var(--header), var(--header-2));
   color: var(--white);
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 20px;
+  padding: 12px 20px; /* Increase for taller header */
 }
 
+/* Close button */
 .icon-btn {
   width: 44px;
   min-width: 44px;
@@ -48,26 +75,32 @@
   cursor: pointer;
 }
 
+/* Title container uses remaining space between close and chips */
 .title {
   flex: 1;
   min-width: 0;
 }
 
+/* Main subject text */
 .title h1 {
   margin: 0;
-  font-size: clamp(22px, 1.8vw, 36px);
+  /* Header title size control: reduce/increase these values for subject text */
+  font-size: clamp(18px, 1.3vw, 28px);
   line-height: 1.15;
   font-weight: 800;
   letter-spacing: -0.3px;
 }
 
+/* Sender + received line */
 .title p {
   margin: 4px 0 0;
   color: rgba(255, 255, 255, 0.92);
-  font-size: clamp(13px, 1vw, 22px);
+  /* Header subtitle size control: sender/received line */
+  font-size: clamp(12px, 0.78vw, 16px);
   font-weight: 600;
 }
 
+/* Right-side top chips wrapper */
 .head-actions {
   display: flex;
   gap: 8px;
@@ -75,16 +108,23 @@
   justify-content: flex-end;
 }
 
+/* Individual top chip */
 .chip {
   padding: 8px 14px;
   border: 1px solid var(--chip-line);
   border-radius: 999px;
   background: var(--chip-bg);
-  font-size: clamp(12px, 0.9vw, 20px);
+  /* Header chip font size control: Ref / Product / Class */
+  font-size: clamp(11px, 0.72vw, 14px);
   font-weight: 700;
   white-space: nowrap;
 }
 
+/*
+  PROGRESS ROW
+  -------------------------------------------------------------------
+  3-step boxes below header.
+*/
 .progress {
   padding: 12px 16px;
   border-bottom: 1px solid var(--line);
@@ -93,6 +133,7 @@
   gap: 10px;
 }
 
+/* Single progress step */
 .step {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -106,21 +147,29 @@
   font-weight: 700;
 }
 
+/* Completed step visual */
 .step.done {
   border-color: #98c9b2;
   background: #e0ece5;
   color: #205e42;
 }
 
+/* Check/ellipsis symbol */
 .step-icon {
   font-weight: 900;
   font-size: 15px;
 }
 
+/*
+  BODY WRAPPER
+  -------------------------------------------------------------------
+  All cards are inside this section.
+*/
 .body {
   padding: 14px 16px 16px;
 }
 
+/* Base card style for LC details / Review / Reference / Email chain */
 .card {
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -129,6 +178,7 @@
   margin-bottom: 14px;
 }
 
+/* Card heading */
 .card h2 {
   margin: 0 0 10px;
   font-size: clamp(20px, 1.35vw, 34px);
@@ -136,20 +186,37 @@
   font-weight: 800;
 }
 
+/*
+  LC DETAILS TABLE
+  -------------------------------------------------------------------
+  table-wrap controls scroll behavior.
+  horizontal-table controls actual table width.
+*/
 .table-wrap {
   border: 1px solid var(--line-soft);
   border-radius: 12px;
-  overflow: hidden;
+
+  /* Keep horizontal scrolling available if needed for very small viewports */
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #f1f5f2;
 }
 
 .horizontal-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 0;
-  table-layout: fixed;
+
+  /*
+    Key width knob for full table readability.
+    Increase if columns still feel cramped.
+  */
+  min-width: 1650px;
+
+  /* Auto lets browser allocate column widths naturally */
+  table-layout: auto;
 }
 
+/* Table header cells */
 .horizontal-table thead th {
   background: #dce5df;
   color: #4a645a;
@@ -160,24 +227,28 @@
   text-align: left;
   padding: 10px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
+/* Table data cells */
 .horizontal-table tbody td {
   font-size: clamp(12px, 0.95vw, 18px);
   color: #2d4038;
-  padding: 8px 6px;
+  padding: 8px 8px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
+/* Right aligned numeric columns */
 .right-align {
   text-align: right;
 }
 
+/*
+  Y / N / NA circular flags in table
+*/
 .flag {
   display: inline-flex;
   align-items: center;
@@ -207,14 +278,20 @@
   color: #7a8a83;
 }
 
+/*
+  REVIEW + REFERENCE ROW
+  -------------------------------------------------------------------
+  Two side-by-side compact cards.
+*/
 .review-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr; /* Change to 1fr to stack by default */
   gap: 12px;
 }
 
+/* Compact card variant for middle row */
 .compact {
-  min-height: 190px;
+  min-height: 190px; /* Increase for taller boxes */
   padding: 10px;
 }
 
@@ -222,6 +299,7 @@
   margin-bottom: 6px;
 }
 
+/* Form field labels in middle cards */
 .label {
   color: var(--muted);
   text-transform: uppercase;
@@ -231,16 +309,18 @@
   font-weight: 700;
 }
 
+/* Priority radio row */
 .priority-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
+/* Angular Material radio button shell */
 ::ng-deep .priority-group .mat-mdc-radio-button {
   border: 1px solid var(--line);
   border-radius: 12px;
-  height: 38px;
+  height: 38px; /* Increase for larger pills */
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -252,6 +332,7 @@
   width: 100%;
 }
 
+/* Radio text */
 ::ng-deep .priority-group .mat-mdc-radio-button .mdc-label {
   width: 100%;
   text-align: center;
@@ -260,49 +341,61 @@
   color: #365348;
 }
 
+/* Active radio look */
 ::ng-deep .priority-group .mat-mdc-radio-button.mat-mdc-radio-checked {
   border-color: #d8bb77;
   background: #f5ebd7;
 }
 
+/* Hide default Material radio circle */
 ::ng-deep .priority-group .mat-mdc-radio-button .mdc-radio {
   display: none;
 }
 
+/* Utility full width for form fields */
 .full-width {
   width: 100%;
 }
 
+/* Form field outline color override */
 ::ng-deep .mat-mdc-form-field .mdc-notched-outline__leading,
 ::ng-deep .mat-mdc-form-field .mdc-notched-outline__notch,
 ::ng-deep .mat-mdc-form-field .mdc-notched-outline__trailing {
   border-color: var(--line) !important;
 }
 
+/* Form field background */
 ::ng-deep .mat-mdc-form-field .mdc-text-field--outlined {
   background: #f0f4f1;
 }
 
+/* Form input text size */
 ::ng-deep .mat-mdc-form-field .mdc-text-field__input {
   font-size: clamp(13px, 0.95vw, 16px) !important;
 }
 
+/* Submit/Reset row */
 .inline-actions {
   display: flex;
   gap: 10px;
 }
 
+/* Material button dimensions */
 ::ng-deep .inline-actions .mdc-button {
-  min-width: 92px;
+  min-width: 92px; /* Increase for wider buttons */
   border-radius: 12px;
-  height: 36px;
+  height: 36px;    /* Increase for taller buttons */
 }
 
+/* Primary button colors */
 ::ng-deep .inline-actions .primary {
   --mdc-protected-button-container-color: var(--header);
   --mdc-protected-button-label-text-color: #fff;
 }
 
+/*
+  REFERENCE STATUS BANNERS
+*/
 .ref-found,
 .ref-missing {
   border: 1px solid #9ccdb6;
@@ -320,6 +413,11 @@
   color: #716245;
 }
 
+/*
+  EMAIL CHAIN SECTION
+  -------------------------------------------------------------------
+  Shows summary metadata always, body only when expanded.
+*/
 .thread-head {
   display: flex;
   align-items: center;
@@ -327,6 +425,7 @@
   margin-bottom: 8px;
 }
 
+/* Outer email chain card content box */
 .email-view {
   border: 1px solid var(--line-soft);
   border-radius: 14px;
@@ -334,10 +433,12 @@
   padding: 12px;
 }
 
+/* Hide optional rows (REF NO, PRODUCT) when collapsed */
 .email-view.collapsed .optional-meta {
   display: none;
 }
 
+/* Metadata table-like list */
 .email-head {
   display: grid;
   gap: 0;
@@ -348,9 +449,10 @@
   padding: 8px 10px;
 }
 
+/* Single metadata row */
 .email-row {
   display: grid;
-  grid-template-columns: 100px minmax(0, 1fr);
+  grid-template-columns: 100px minmax(0, 1fr); /* first column width */
   gap: 10px;
   align-items: baseline;
   padding: 6px 2px;
@@ -361,6 +463,7 @@
   border-bottom: 0;
 }
 
+/* Metadata key text */
 .key {
   color: #556f64;
   text-transform: uppercase;
@@ -369,11 +472,13 @@
   font-size: clamp(11px, 0.75vw, 14px);
 }
 
+/* Metadata value text */
 .val {
   color: #2f433a;
   font-size: clamp(13px, 0.95vw, 16px);
 }
 
+/* Email body container (only visible when expanded) */
 .thread {
   margin-top: 10px;
   min-height: 140px;
@@ -388,6 +493,7 @@
   overflow-wrap: anywhere;
 }
 
+/* Space inside injected HTML email body */
 .thread :where(p, div, li, blockquote) {
   margin: 0 0 10px;
 }
@@ -408,17 +514,24 @@
   vertical-align: top;
 }
 
+/* Legacy preview helper (kept for safety) */
 .thread.preview {
   max-height: 220px;
   overflow: auto;
 }
 
+/* Loading message style */
 .loading {
   margin: 0;
   padding: 20px;
   color: var(--muted);
 }
 
+/*
+  RESPONSIVE: TABLET / SMALL DESKTOP
+  -------------------------------------------------------------------
+  Keep layout usable on smaller widths.
+*/
 @media (max-width: 1100px) {
   .head {
     align-items: flex-start;
@@ -436,7 +549,7 @@
   .horizontal-table thead th,
   .horizontal-table tbody td {
     font-size: 11px;
-    padding: 6px 4px;
+    padding: 6px 6px;
   }
 
   .thread-head {
@@ -446,6 +559,11 @@
   }
 }
 
+/*
+  RESPONSIVE: MOBILE
+  -------------------------------------------------------------------
+  Compact paddings and stack email metadata rows.
+*/
 @media (max-width: 760px) {
   .body,
   .progress {
