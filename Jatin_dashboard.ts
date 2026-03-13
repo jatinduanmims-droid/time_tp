@@ -84,6 +84,10 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   constructor(private emailSrv: EmailService) {}
 
+  private normalizeSlaValue(value: unknown): 'Y' | 'N' {
+    return String(value ?? '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+  }
+
   ngOnInit(): void {
     this.loadBatchEmails();
   }
@@ -115,8 +119,9 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
           SLA_DATE_FMT: this.formatDate(e.SLA_DATE),
           EMAIL_RECEIVEDTIME_FMT: this.formatDate(e.EMAIL_RECEIVEDTIME),
           APPROVEDATE_FMT: e.APPROVEDATE ? this.formatDate(e.APPROVEDATE) : '',
-          // Normalize SLA field for table icon rendering
-          SLAMEET: (e as any).SLAMEET ?? e.SLA_MET ?? ''
+          // Normalize SLA variants from API payload so UI and KPIs stay consistent
+          SLA_MET: this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET),
+          SLAMEET: this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET)
         } as EmailDetail));
 
         this.displayedEmails = [...this.batchEmails];
@@ -183,11 +188,15 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
     this.overdue = this.batchEmails.filter(e =>
       new Date(e.SLA_DATE) < this.targetDate &&
-      e.SLA_MET !== 'Y'
+      this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) !== 'Y'
     ).length;
 
-    this.slaMet = this.batchEmails.filter(e => e.SLA_MET === 'Y').length;
-    this.slaBreach = this.batchEmails.filter(e => e.SLA_MET === 'N').length;
+    this.slaMet = this.batchEmails.filter(e =>
+      this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) === 'Y'
+    ).length;
+    this.slaBreach = this.batchEmails.filter(e =>
+      this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) !== 'Y'
+    ).length;
 
     const totalSla = this.slaMet + this.slaBreach;
     this.slaPercentage = totalSla
@@ -235,8 +244,9 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
         }
 
         const point = trendMap.get(key)!;
-        if (e.SLA_MET === 'Y') point.met += 1;
-        if (e.SLA_MET === 'N') point.breach += 1;
+        const sla = this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET);
+        if (sla === 'Y') point.met += 1;
+        if (sla !== 'Y') point.breach += 1;
       });
 
     let trendPoints = Array.from(trendMap.values())
@@ -347,7 +357,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
         case 'overdue':
           return new Date(e.SLA_DATE) < this.targetDate &&
-                 e.SLA_MET !== 'Y';
+                 this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) !== 'Y';
 
         default:
           return true;
