@@ -260,6 +260,7 @@
   <app-email-detail
     [rowId]="selectedRow.ROW_ID"
     [control]="'all'"
+    (saved)="handleSavedRow($event)"
     (close)="closeDetail()">
   </app-email-detail>
 </div>
