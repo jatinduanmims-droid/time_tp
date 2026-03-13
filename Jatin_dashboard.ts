@@ -379,6 +379,11 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     this.selectedRow = row;
   }
 
+  handleSavedRow(_: unknown): void {
+    this.pendingRestoreFirst = this.tableFirst;
+    this.loadBatchEmails();
+  }
+
   closeDetail(): void {
     this.pendingRestoreFirst = this.tableFirst;
     this.selectedRow = undefined;
