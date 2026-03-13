@@ -84,6 +84,43 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   constructor(private emailSrv: EmailService) {}
 
+  private applySavedRowUpdate(event: { rowId: number; changes: Partial<EmailDetail> & Record<string, unknown> }): void {
+    const normalizeUpdatedEmail = (email: EmailDetail): EmailDetail => {
+      const sla = this.normalizeSlaValue(
+        (email as any).SLAMEET ?? (email as any).SLAMET ?? email.SLA_MET
+      );
+
+      return {
+        ...email,
+        SLA_MET: sla,
+        SLAMEET: sla
+      } as EmailDetail;
+    };
+
+    this.batchEmails = this.batchEmails.map(email =>
+      email.ROW_ID === event.rowId
+        ? normalizeUpdatedEmail({ ...email, ...event.changes } as EmailDetail)
+        : email
+    );
+
+    this.displayedEmails = this.displayedEmails.map(email =>
+      email.ROW_ID === event.rowId
+        ? normalizeUpdatedEmail({ ...email, ...event.changes } as EmailDetail)
+        : email
+    );
+
+    if (this.selectedRow?.ROW_ID === event.rowId) {
+      this.selectedRow = normalizeUpdatedEmail({
+        ...this.selectedRow,
+        ...event.changes
+      } as EmailDetail);
+    }
+
+    this.calculateKpis();
+    this.buildCharts();
+    this.refreshChartLayout();
+  }
+
   private normalizeSlaValue(value: unknown): 'Y' | 'N' {
     return String(value ?? '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
   }
@@ -379,15 +416,12 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     this.selectedRow = row;
   }
 
-  handleSavedRow(_: unknown): void {
-    this.pendingRestoreFirst = this.tableFirst;
-    this.loadBatchEmails();
+  handleSavedRow(event: { rowId: number; changes: Partial<EmailDetail> & Record<string, unknown> }): void {
+    this.applySavedRowUpdate(event);
   }
 
   closeDetail(): void {
-    this.pendingRestoreFirst = this.tableFirst;
     this.selectedRow = undefined;
-    this.loadBatchEmails();
   }
 
   handlePage(event: any): void {
