@@ -49,6 +49,7 @@ export class EmailDetailComponent implements OnChanges {
   @Input() rowId?: number;
   @Input() control: string = 'all';
   @Output() close = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<number>();
 
   email: EmailDetail[] = [];
   form: FormGroup;
@@ -91,6 +92,12 @@ export class EmailDetailComponent implements OnChanges {
 
   onClose(): void {
     this.close.emit();
+  }
+
+  private emitSavedRow(rowId?: number): void {
+    if (rowId) {
+      this.saved.emit(rowId);
+    }
   }
 
   loadDetail(id: number, control: string) {
@@ -136,6 +143,7 @@ export class EmailDetailComponent implements OnChanges {
           (this.firstDetail as any).SLA_MET = slaFlag;
         }
         this.form.patchValue({ slaFlag });
+        this.emitSavedRow(this.rowId);
         alert('Record saved successfully');
       },
       error: (err) => {
@@ -185,6 +193,7 @@ export class EmailDetailComponent implements OnChanges {
             detail.SLAMET = flagValue;
             detail.SLA_MET = flagValue;
             this.form.patchValue({ slaFlag: flagValue });
+            this.emitSavedRow(detail.ROW_ID);
           },
 
           error: err => {
@@ -231,6 +240,7 @@ export class EmailDetailComponent implements OnChanges {
         }));
 
         this.form.patchValue({ referenceNumber: '' });
+        this.emitSavedRow(this.rowId);
 
         alert('Reference saved and details refreshed');
 
