@@ -85,6 +85,10 @@ export class EmailDetailComponent implements OnChanges {
     return this.email[0];
   }
 
+  private normalizeSla(value: unknown): 'Y' | 'N' {
+    return String(value ?? '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+  }
+
   onClose(): void {
     this.close.emit();
   }
@@ -98,7 +102,7 @@ export class EmailDetailComponent implements OnChanges {
       this.form.patchValue({
         priorityFlag: data[0].EMAIL_CLASSIFICATION,
         comments: data[0].COMMENTS ?? '',
-        slaFlag: data[0].SLAMET
+        slaFlag: this.normalizeSla((data[0] as any).SLAMET ?? (data[0] as any).SLA_MET)
       });
 
       const payload: any = data;
@@ -115,9 +119,9 @@ export class EmailDetailComponent implements OnChanges {
 
     if (!this.rowId) return;
 
-    const { priorityFlag, comments, slaFlag } = this.form.value;
-
-    const userSlaFlag = this.firstDetail?.SLAMET ?? '';
+    const { priorityFlag, comments } = this.form.value;
+    const slaFlag = this.normalizeSla(this.form.value.slaFlag ?? this.firstDetail?.SLAMET);
+    const userSlaFlag = this.normalizeSla(this.firstDetail?.SLAMET);
 
     this.emailsrv.updateClassification(
       this.rowId,
@@ -127,6 +131,11 @@ export class EmailDetailComponent implements OnChanges {
       userSlaFlag
     ).subscribe({
       next: () => {
+        if (this.firstDetail) {
+          (this.firstDetail as any).SLAMET = slaFlag;
+          (this.firstDetail as any).SLA_MET = slaFlag;
+        }
+        this.form.patchValue({ slaFlag });
         alert('Record saved successfully');
       },
       error: (err) => {
@@ -139,7 +148,7 @@ export class EmailDetailComponent implements OnChanges {
   // SLA Checkbox handling
   onSlacheckboxChange(event: any, detail: any) {
 
-    const previous = detail.SLAMET;
+    const previous = this.normalizeSla(detail.SLAMET ?? detail.SLA_MET);
     const isChecked = event.checked;
 
     const flagValue = isChecked ? 'Y' : 'N';
@@ -155,14 +164,14 @@ export class EmailDetailComponent implements OnChanges {
 
       if (confirmed) {
 
-        const { priorityFlag, comments, slaFlag } = this.form.value;
+        const { priorityFlag, comments } = this.form.value;
 
         this.emailsrv.updateClassification(
           detail.ROW_ID,
           priorityFlag,
           comments,
           flagValue,
-          detail.LC_REFERENCE_NUMBER
+          previous
         ).subscribe({
 
           next: () => {
@@ -174,10 +183,17 @@ export class EmailDetailComponent implements OnChanges {
             );
 
             detail.SLAMET = flagValue;
+            detail.SLA_MET = flagValue;
+            this.form.patchValue({ slaFlag: flagValue });
           },
 
           error: err => {
             console.error('Failed to save SLA flag', err);
+            detail.SLAMET = previous;
+            detail.SLA_MET = previous;
+            if (event && event.source) {
+              event.source.checked = previous === 'Y';
+            }
           }
 
         });
