@@ -19,6 +19,15 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SlaResultDialogComponent } from '../sla-result-dialog.component';
 
+type SavedRowEvent = {
+  rowId: number;
+  changes: Partial<EmailDetail> & {
+    SLAMET?: 'Y' | 'N';
+    SLA_MET?: 'Y' | 'N';
+    SLAMEET?: 'Y' | 'N';
+  };
+};
+
 @Component({
   selector: 'app-email-detail',
   standalone: true,
@@ -49,7 +58,7 @@ export class EmailDetailComponent implements OnChanges {
   @Input() rowId?: number;
   @Input() control: string = 'all';
   @Output() close = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<number>();
+  @Output() saved = new EventEmitter<SavedRowEvent>();
 
   email: EmailDetail[] = [];
   form: FormGroup;
@@ -94,9 +103,9 @@ export class EmailDetailComponent implements OnChanges {
     this.close.emit();
   }
 
-  private emitSavedRow(rowId?: number): void {
+  private emitSavedRow(rowId: number | undefined, changes: SavedRowEvent['changes']): void {
     if (rowId) {
-      this.saved.emit(rowId);
+      this.saved.emit({ rowId, changes });
     }
   }
 
@@ -143,7 +152,13 @@ export class EmailDetailComponent implements OnChanges {
           (this.firstDetail as any).SLA_MET = slaFlag;
         }
         this.form.patchValue({ slaFlag });
-        this.emitSavedRow(this.rowId);
+        this.emitSavedRow(this.rowId, {
+          EMAIL_CLASSIFICATION: priorityFlag,
+          COMMENTS: comments,
+          SLAMET: slaFlag,
+          SLA_MET: slaFlag,
+          SLAMEET: slaFlag
+        });
         alert('Record saved successfully');
       },
       error: (err) => {
@@ -193,7 +208,11 @@ export class EmailDetailComponent implements OnChanges {
             detail.SLAMET = flagValue;
             detail.SLA_MET = flagValue;
             this.form.patchValue({ slaFlag: flagValue });
-            this.emitSavedRow(detail.ROW_ID);
+            this.emitSavedRow(detail.ROW_ID, {
+              SLAMET: flagValue,
+              SLA_MET: flagValue,
+              SLAMEET: flagValue
+            });
           },
 
           error: err => {
@@ -240,7 +259,9 @@ export class EmailDetailComponent implements OnChanges {
         }));
 
         this.form.patchValue({ referenceNumber: '' });
-        this.emitSavedRow(this.rowId);
+        this.emitSavedRow(this.rowId, {
+          LC_REFERENCE_NUMBER: referenceNumber
+        });
 
         alert('Reference saved and details refreshed');
 
