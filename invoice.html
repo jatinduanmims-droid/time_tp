@@ -1,0 +1,134 @@
+<div class="panel table-card">
+
+  <p-table
+    #dt
+    [value]="invoiceLoans"
+    [loading]="loading"
+    [filterDelay]="300"
+    [paginator]="true"
+    [rows]="tableRows"
+    [first]="tableFirst"
+    [totalRecords]="totalRecords"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Page {currentPage} of {totalPages}"
+    (onPage)="handlePage($event)"
+    [scrollable]="true"
+    scrollHeight="auto"
+    responsiveLayout="scroll"
+    class="compact-table custom-header modern-table"
+  >
+
+    <!-- HEADER -->
+    <ng-template pTemplate="header">
+      <tr>
+        <th
+          *ngFor="let col of cols"
+          [pSortableColumn]="col.field"
+          [ngClass]="{ 'center-cell': col.align === 'center' }"
+        >
+          <div class="table-head-cell">
+            {{ col.header }}
+            <p-sortIcon [field]="col.field"></p-sortIcon>
+          </div>
+        </th>
+      </tr>
+
+      <!-- FILTER ROW -->
+      <tr>
+        <th *ngFor="let col of cols">
+          <div class="filter-wrapper">
+            <i class="pi pi-search"></i>
+            <p-columnFilter
+              [field]="col.field"
+              type="text"
+              [showMenu]="false"
+              class="filter-input"
+            ></p-columnFilter>
+          </div>
+        </th>
+      </tr>
+    </ng-template>
+
+    <!-- BODY -->
+    <ng-template pTemplate="body" let-row>
+      <tr (click)="openRow(row)" style="cursor: pointer;">
+        <td
+          *ngFor="let col of cols"
+          [ngClass]="{
+            'center-cell': col.align === 'center'
+          }"
+        >
+
+          <!-- Date handling -->
+          <ng-container *ngIf="col.type === 'date'; else defaultCell">
+            {{ row[col.field] | date: 'yyyy-MM-dd' }}
+          </ng-container>
+
+          <ng-template #defaultCell>
+            {{ row[col.field] }}
+          </ng-template>
+
+        </td>
+      </tr>
+    </ng-template>
+
+  </p-table>
+
+</div>
+
+<!-- 🔥 POPUP DIALOG -->
+<p-dialog
+  header="Invoice Loan Details"
+  [(visible)]="displayDialog"
+  [modal]="true"
+  [style]="{ width: '850px' }"
+  [closable]="true"
+>
+
+  <div *ngIf="selectedRow">
+
+    <table class="detail-table">
+
+      <thead>
+        <tr>
+          <th>File Details</th>
+          <th>Reference No</th>
+          <th>Price Check</th>
+          <th>Maturity Date Check</th>
+          <th>Date Check</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        <tr>
+          <td>Invoice File</td>
+          <td>{{ selectedRow.INVOICE_REF_NO }}</td>
+          <td>{{ selectedRow.CONFIRMED_NET_DISCOUNT }}</td>
+          <td>{{ selectedRow.INVOICE_MATURITY_DATE | date:'yyyy-MM-dd' }}</td>
+          <td>{{ selectedRow.DISCOUNT_DATE | date:'yyyy-MM-dd' }}</td>
+        </tr>
+
+        <tr>
+          <td>Loan File</td>
+          <td>{{ selectedRow.LOAN_REFERENCE }}</td>
+          <td>{{ selectedRow.PURCHASE_PRICE }}</td>
+          <td>{{ selectedRow.LOAN_MATURITY_DATE | date:'yyyy-MM-dd' }}</td>
+          <td>{{ selectedRow.EFFECTIVE_DATE | date:'yyyy-MM-dd' }}</td>
+        </tr>
+
+        <tr>
+          <td>Reconciliation Check</td>
+          <td>-</td>
+          <td>{{ selectedRow.PRICE_CHECK }}</td>
+          <td>{{ selectedRow.MATURITY_DATE_CHECK }}</td>
+          <td>{{ selectedRow.EFFE_DISC_DATE_CHECK }}</td>
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</p-dialog>
