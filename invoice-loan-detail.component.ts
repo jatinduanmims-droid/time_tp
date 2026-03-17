@@ -123,6 +123,13 @@ export class InvoiceLoanDetailComponent implements OnChanges {
 
   // Normalize Y/N style database flags so the UI stays consistent even if casing varies.
   private normalizeFlag(value: unknown): 'Y' | 'N' {
-    return String(value ?? '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+    const normalized = String(value ?? '').trim().toUpperCase();
+    return normalized === 'Y'
+      || normalized === 'YES'
+      || normalized === 'TRUE'
+      || normalized === '1'
+      || normalized === 'MATCH'
+      ? 'Y'
+      : 'N';
   }
 }

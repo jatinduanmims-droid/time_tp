@@ -25,9 +25,9 @@
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(12, 48, 35, 0.08);
-  width: 1500px;
-  min-width: 1500px;
-  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .head {
@@ -127,14 +127,14 @@
 .table-wrap {
   border: 1px solid var(--line-soft);
   border-radius: 12px;
-  overflow-x: auto;
+  overflow: hidden;
   background: #f1f5f2;
 }
 
 :host ::ng-deep .detail-table .p-datatable-table {
   width: 100%;
-  min-width: 1450px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 :host ::ng-deep .detail-table .p-datatable-thead > tr > th {
@@ -147,7 +147,7 @@
   text-align: left;
   padding: 10px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: nowrap;
+  white-space: normal;
 }
 
 :host ::ng-deep .detail-table .p-datatable-tbody > tr > td {
@@ -155,7 +155,10 @@
   color: #2d4038;
   padding: 9px 10px;
   border-bottom: 1px solid var(--line-soft);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
 }
 
 :host ::ng-deep .detail-table .p-datatable-tbody > tr:hover > td {
@@ -214,7 +217,6 @@
 
 @media (max-width: 1600px) {
   .invoice-loan-detail-overlay {
-    width: calc(100vw - 100px);
-    min-width: calc(100vw - 100px);
+    width: 100%;
   }
 }
