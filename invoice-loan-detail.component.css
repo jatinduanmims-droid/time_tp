@@ -1,0 +1,220 @@
+:host {
+  --bg: #eef3ef;
+  --card-bg: #edf1ee;
+  --line: #c8d4cd;
+  --line-soft: #d5ded9;
+  --header: #0c5f43;
+  --header-2: #0f6a4b;
+  --text: #1f2f2a;
+  --ok: #228150;
+  --ok-bg: #dff1e7;
+  --danger: #b05656;
+  --danger-bg: #f4e1e1;
+  --chip-bg: rgba(255, 255, 255, 0.15);
+  --chip-line: rgba(255, 255, 255, 0.4);
+  --white: #fff;
+
+  display: block;
+  color: var(--text);
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+.invoice-loan-detail-overlay {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(12, 48, 35, 0.08);
+  width: 1500px;
+  min-width: 1500px;
+  max-width: none;
+}
+
+.head {
+  background: linear-gradient(90deg, var(--header), var(--header-2));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+}
+
+.icon-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border: 1px solid var(--chip-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--white);
+  font-size: 28px;
+  line-height: 28px;
+  cursor: pointer;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: clamp(18px, 1.3vw, 28px);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.title p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(12px, 0.78vw, 16px);
+  font-weight: 600;
+}
+
+.head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chip {
+  padding: 8px 14px;
+  border: 1px solid var(--chip-line);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  font-size: clamp(11px, 0.72vw, 14px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ok-chip {
+  background: rgba(34, 129, 80, 0.2);
+}
+
+.bad-chip {
+  background: rgba(176, 86, 86, 0.2);
+}
+
+.legend-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px 0;
+}
+
+.legend-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #f8fbf9;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.legend-ok {
+  color: var(--ok);
+}
+
+.legend-bad {
+  color: var(--danger);
+}
+
+.body {
+  padding: 14px 16px 16px;
+}
+
+.table-wrap {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #f1f5f2;
+}
+
+:host ::ng-deep .detail-table .p-datatable-table {
+  width: 100%;
+  min-width: 1450px;
+  border-collapse: collapse;
+}
+
+:host ::ng-deep .detail-table .p-datatable-thead > tr > th {
+  background: #dce5df;
+  color: #4a645a;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 800;
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+:host ::ng-deep .detail-table .p-datatable-tbody > tr > td {
+  font-size: 0.84rem;
+  color: #2d4038;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+:host ::ng-deep .detail-table .p-datatable-tbody > tr:hover > td {
+  background: #f6faf7;
+}
+
+.pair-match {
+  color: var(--ok) !important;
+  background: var(--ok-bg) !important;
+  font-weight: 700;
+}
+
+.pair-mismatch {
+  color: var(--danger) !important;
+  background: var(--danger-bg) !important;
+  font-weight: 700;
+}
+
+:host ::ng-deep .detail-table .p-paginator {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid #dce8e2;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fcfa, #eef5f1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+:host ::ng-deep .detail-table .p-paginator .p-paginator-pages {
+  display: flex;
+  gap: 6px;
+}
+
+:host ::ng-deep .detail-table .p-paginator .p-paginator-page,
+:host ::ng-deep .detail-table .p-paginator .p-paginator-first,
+:host ::ng-deep .detail-table .p-paginator .p-paginator-prev,
+:host ::ng-deep .detail-table .p-paginator .p-paginator-next,
+:host ::ng-deep .detail-table .p-paginator .p-paginator-last {
+  min-width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #d5e3dc;
+  background: #ffffff;
+  color: #2b443b;
+}
+
+:host ::ng-deep .detail-table .p-paginator .p-paginator-page.p-highlight,
+:host ::ng-deep .detail-table .p-paginator .p-paginator-page[aria-current='page'] {
+  background: linear-gradient(132deg, var(--header), var(--header-2)) !important;
+  border-color: var(--header-2) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+@media (max-width: 1600px) {
+  .invoice-loan-detail-overlay {
+    width: calc(100vw - 100px);
+    min-width: calc(100vw - 100px);
+  }
+}
