@@ -254,6 +254,7 @@
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+  cursor: pointer;
 }
 
 :host ::ng-deep .modern-table .p-datatable-tbody > tr:hover > td {
@@ -362,6 +363,27 @@
 
 :host ::ng-deep .modern-table .p-paginator .p-disabled {
   opacity: 0.45;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+}
+
+.modal-window {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(1500px, 94vw);
+  max-height: 88vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  z-index: 1201;
 }
 
 :host ::ng-deep .modern-table .p-datatable-thead > tr:first-child > th {

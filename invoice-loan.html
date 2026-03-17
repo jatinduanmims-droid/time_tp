@@ -98,6 +98,7 @@
         <tr>
           <td
             *ngFor="let col of cols"
+            (click)="openDetail(row)"
             [ngClass]="{
               'center-cell': col.align === 'center',
               'count-col': col.field === 'invoiceCount',
@@ -127,4 +128,18 @@
       </ng-template>
     </p-table>
   </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="selectedSummaryRow" (click)="closeDetail()"></div>
+
+<div class="modal-window" *ngIf="selectedSummaryRow">
+  <app-invoice-loan-detail
+    [visible]="!!selectedSummaryRow"
+    [clientName]="selectedSummaryRow.CLIENT_NAME"
+    [fileReceivedDate]="selectedSummaryRow.FILE_RECEIVED_DATE"
+    [loanFileName]="selectedSummaryRow.LOAN_FILE_NAME"
+    [invoiceFileName]="selectedSummaryRow.INVOICE_FILE_NAME"
+    [records]="selectedDetailRows"
+    (close)="closeDetail()">
+  </app-invoice-loan-detail>
 </div>

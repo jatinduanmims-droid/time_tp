@@ -1,0 +1,67 @@
+<div *ngIf="visible" class="invoice-loan-detail-overlay">
+  <header class="head">
+    <button type="button" class="icon-btn" (click)="onClose()" aria-label="Close detail view">&times;</button>
+
+    <div class="title">
+      <h1>{{ clientName || 'Invoice Loan Detail' }}</h1>
+      <p>
+        Received: {{ fileReceivedDate ? (fileReceivedDate | date: 'yyyy-MM-dd') : '-' }}
+        |
+        Loan File: {{ loanFileName || '-' }}
+        |
+        Invoice File: {{ invoiceFileName || '-' }}
+      </p>
+    </div>
+
+    <div class="head-actions">
+      <span class="chip">Records: {{ totalRecords }}</span>
+      <span class="chip ok-chip">Matched: {{ matchedRows }}</span>
+      <span class="chip bad-chip">Mismatched: {{ mismatchedRows }}</span>
+    </div>
+  </header>
+
+  <section class="legend-row">
+    <span class="legend-pill legend-ok">Green = matched pair from DB check flag</span>
+    <span class="legend-pill legend-bad">Red = mismatched pair from DB check flag</span>
+    <span class="legend-pill">10 rows per page</span>
+  </section>
+
+  <section class="body">
+    <div class="table-wrap">
+      <p-table
+        [value]="detailRows"
+        [paginator]="true"
+        [rows]="rowsPerPage"
+        [first]="first"
+        [totalRecords]="totalRecords"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Page {currentPage} of {totalPages}"
+        (onPage)="handlePage($event)"
+        class="detail-table modern-table">
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th *ngFor="let col of cols">
+              {{ col.header }}
+            </th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td
+              *ngFor="let col of cols"
+              [ngClass]="getPairClass(row, col.pairFlag)">
+              <ng-container *ngIf="col.type === 'date'; else defaultCell">
+                {{ row[col.field] | date: 'yyyy-MM-dd' }}
+              </ng-container>
+              <ng-template #defaultCell>
+                {{ row[col.field] }}
+              </ng-template>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Loan Preview</title>
+  <style>
+    :root {
+      --bg-1: #f7f4ea;
+      --bg-2: #edf3f8;
+      --panel: rgba(255, 255, 255, 0.9);
+      --line: #d9e0e7;
+      --text: #1e2a32;
+      --muted: #62727f;
+      --brand: #1d5f8f;
+      --brand-deep: #123e5e;
+      --yes: #20744a;
+      --no: #b54747;
+      --shadow: 0 24px 48px rgba(20, 54, 79, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(29, 95, 143, 0.18), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(197, 149, 57, 0.14), transparent 24%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 24px auto;
+    }
+
+    .hero {
+      padding: 18px 20px;
+      border-radius: 18px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand-deep), var(--brand));
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.84;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 0.92rem;
+    }
+
+    .panel {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #edf1f5;
+      text-align: left;
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f5f8fb;
+      color: #324350;
+      font-size: 0.77rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:hover {
+      background: #fafcff;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .flag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.76rem;
+    }
+
+    .flag-yes {
+      color: var(--yes);
+      background: rgba(32, 116, 74, 0.12);
+    }
+
+    .flag-no {
+      color: var(--no);
+      background: rgba(181, 71, 71, 0.12);
+    }
+
+    .note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: rgba(18, 62, 94, 0.06);
+      padding: 0 4px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100vw - 20px, 1180px);
+        margin: 10px auto 20px;
+      }
+
+      .panel,
+      .hero {
+        border-radius: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <p class="eyebrow">Standalone Browser Mock</p>
+      <h1>Invoice Loan Summary Preview</h1>
+      <p>Uses the same six-column grouped view requested for the Angular screen.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Grouped Table</h2>
+          <p>Grouped by client, received date, loan file name, and invoice file name.</p>
+        </div>
+      </div>
+
+      <div class="pill-row">
+        <div class="pill">Visible columns: 6</div>
+        <div class="pill">Count of Invoices = total records in the group</div>
+        <div class="pill">Master recon = Yes only if all records are Yes</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>CLIENT_NAME</th>
+              <th class="center">Count of Invoices</th>
+              <th>FILE_RECEIVED_DATE</th>
+              <th>LOAN_FILE_NAME</th>
+              <th>INVOICE_FILE_NAME</th>
+              <th>MASTER_RECON_FLAG</th>
+            </tr>
+          </thead>
+          <tbody id="summary-body"></tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        Open this file directly in a browser. To test different data, edit the <code>rawData</code> array near the bottom of the file.
+      </p>
+    </section>
+  </div>
+
+  <script>
+    const rawData = [
+      {
+        CLIENT_NAME: "Acme Capital",
+        FILE_RECEIVED_DATE: "2026-03-18T08:10:00",
+        LOAN_FILE_NAME: "loan_batch_18032026.csv",
+        INVOICE_FILE_NAME: "invoice_batch_18032026_a.csv",
+        MASTER_RECON_FLAG: "Yes"
+      },
+      {
+        CLIENT_NAME: "Acme Capital",
+        FILE_RECEIVED_DATE: "2026-03-18T09:45:00",
+        LOAN_FILE_NAME: "loan_batch_18032026.csv",
+        INVOICE_FILE_NAME: "invoice_batch_18032026_a.csv",
+        MASTER_RECON_FLAG: "Yes"
+      },
+      {
+        CLIENT_NAME: "Beta Finance",
+        FILE_RECEIVED_DATE: "2026-03-18T10:15:00",
+        LOAN_FILE_NAME: "loan_beta_18032026.csv",
+        INVOICE_FILE_NAME: "invoice_beta_18032026.csv",
+        MASTER_RECON_FLAG: "No"
+      },
+      {
+        CLIENT_NAME: "Beta Finance",
+        FILE_RECEIVED_DATE: "2026-03-18T10:25:00",
+        LOAN_FILE_NAME: "loan_beta_18032026.csv",
+        INVOICE_FILE_NAME: "invoice_beta_18032026.csv",
+        MASTER_RECON_FLAG: "Yes"
+      },
+      {
+        CLIENT_NAME: "Nova Holdings",
+        FILE_RECEIVED_DATE: "2026-03-17T17:02:00",
+        LOAN_FILE_NAME: "nova_loan_17032026.csv",
+        INVOICE_FILE_NAME: "nova_invoice_17032026.csv",
+        MASTER_RECON_FLAG: "Yes"
+      }
+    ];
+
+    function normalizeText(value) {
+      return String(value ?? "").trim();
+    }
+
+    function normalizeDate(value) {
+      if (!value) {
+        return null;
+      }
+
+      const parsed = new Date(String(value));
+      if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+      }
+
+      return parsed.toISOString().slice(0, 10);
+    }
+
+    function isYes(value) {
+      return String(value ?? "").trim().toLowerCase() === "yes";
+    }
+
+    function buildSummaryRows(data) {
+      const groupedRows = new Map();
+
+      for (const record of data) {
+        const receivedDate = normalizeDate(record.FILE_RECEIVED_DATE);
+        const clientName = normalizeText(record.CLIENT_NAME);
+        const loanFileName = normalizeText(record.LOAN_FILE_NAME);
+        const invoiceFileName = normalizeText(record.INVOICE_FILE_NAME);
+        const key = [clientName, receivedDate ?? "", loanFileName, invoiceFileName].join("|");
+        const masterReconFlag = isYes(record.MASTER_RECON_FLAG);
+
+        if (!groupedRows.has(key)) {
+          groupedRows.set(key, {
+            CLIENT_NAME: clientName,
+            invoiceCount: 0,
+            FILE_RECEIVED_DATE: receivedDate,
+            LOAN_FILE_NAME: loanFileName,
+            INVOICE_FILE_NAME: invoiceFileName,
+            allYes: true
+          });
+        }
+
+        const group = groupedRows.get(key);
+        group.invoiceCount += 1;
+        group.allYes = group.allYes && masterReconFlag;
+      }
+
+      return Array.from(groupedRows.values()).map((group) => ({
+        CLIENT_NAME: group.CLIENT_NAME,
+        invoiceCount: group.invoiceCount,
+        FILE_RECEIVED_DATE: group.FILE_RECEIVED_DATE,
+        LOAN_FILE_NAME: group.LOAN_FILE_NAME,
+        INVOICE_FILE_NAME: group.INVOICE_FILE_NAME,
+        MASTER_RECON_FLAG: group.allYes ? "Yes" : "No"
+      })).sort((a, b) => {
+        const dateCompare = (b.FILE_RECEIVED_DATE ?? "").localeCompare(a.FILE_RECEIVED_DATE ?? "");
+        if (dateCompare !== 0) {
+          return dateCompare;
+        }
+
+        return a.CLIENT_NAME.localeCompare(b.CLIENT_NAME);
+      });
+    }
+
+    function renderTable(rows) {
+      const body = document.getElementById("summary-body");
+      body.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${row.CLIENT_NAME}</td>
+          <td class="center">${row.invoiceCount}</td>
+          <td>${row.FILE_RECEIVED_DATE ?? ""}</td>
+          <td>${row.LOAN_FILE_NAME}</td>
+          <td>${row.INVOICE_FILE_NAME}</td>
+          <td>
+            <span class="flag ${row.MASTER_RECON_FLAG === "Yes" ? "flag-yes" : "flag-no"}">
+              ${row.MASTER_RECON_FLAG}
+            </span>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    renderTable(buildSummaryRows(rawData));
+  </script>
+</body>
+</html>
