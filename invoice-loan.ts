@@ -34,7 +34,7 @@ export class InvoiceLoanComponent implements OnInit {
   latestReceivedDate: string | null = null;
 
   totalRecords = 0;
-  tableRows = 20;   // rows per page
+  tableRows = 10;   // rows per page
   tableFirst = 0;   // first row index for pagination
 
   cols = [

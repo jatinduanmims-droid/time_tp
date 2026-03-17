@@ -48,9 +48,6 @@
       [showCurrentPageReport]="true"
       currentPageReportTemplate="Page {currentPage} of {totalPages}"
       (onPage)="handlePage($event)"
-      [scrollable]="true"
-      scrollHeight="auto"
-      responsiveLayout="scroll"
       class="compact-table custom-header modern-table">
 
       <ng-template pTemplate="header">
@@ -58,7 +55,14 @@
           <th
             *ngFor="let col of cols"
             [pSortableColumn]="col.field"
-            [ngClass]="{ 'center-cell': col.align === 'center' }">
+            [ngClass]="{
+              'center-cell': col.align === 'center',
+              'count-col': col.field === 'invoiceCount',
+              'date-col': col.field === 'FILE_RECEIVED_DATE',
+              'flag-col': col.field === 'MASTER_RECON_FLAG',
+              'loan-col': col.field === 'LOAN_FILE_NAME',
+              'invoice-col': col.field === 'INVOICE_FILE_NAME'
+            }">
             <div class="table-head-cell">
               {{ col.header }}
               <p-sortIcon [field]="col.field"></p-sortIcon>
@@ -69,7 +73,14 @@
         <tr>
           <th
             *ngFor="let col of cols"
-            [ngClass]="{ 'center-cell': col.align === 'center' }">
+            [ngClass]="{
+              'center-cell': col.align === 'center',
+              'count-col': col.field === 'invoiceCount',
+              'date-col': col.field === 'FILE_RECEIVED_DATE',
+              'flag-col': col.field === 'MASTER_RECON_FLAG',
+              'loan-col': col.field === 'LOAN_FILE_NAME',
+              'invoice-col': col.field === 'INVOICE_FILE_NAME'
+            }">
             <div class="filter-wrapper">
               <i class="pi pi-search"></i>
               <p-columnFilter
@@ -87,7 +98,14 @@
         <tr>
           <td
             *ngFor="let col of cols"
-            [ngClass]="{ 'center-cell': col.align === 'center' }">
+            [ngClass]="{
+              'center-cell': col.align === 'center',
+              'count-col': col.field === 'invoiceCount',
+              'date-col': col.field === 'FILE_RECEIVED_DATE',
+              'flag-col': col.field === 'MASTER_RECON_FLAG',
+              'loan-col': col.field === 'LOAN_FILE_NAME',
+              'invoice-col': col.field === 'INVOICE_FILE_NAME'
+            }">
 
             <ng-container *ngIf="col.field === 'MASTER_RECON_FLAG'; else nonFlagCell">
               <span class="status-pill" [ngClass]="row[col.field] === 'Yes' ? 'status-yes' : 'status-no'">
