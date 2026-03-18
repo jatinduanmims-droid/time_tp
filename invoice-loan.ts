@@ -1,8 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule, NgIf, NgFor, DatePipe } from '@angular/common';
 import { Table, TableModule } from 'primeng/table'; // <p-table>, <p-sortIcon>, <p-columnFilter>
 import { CreditControls, InvoiceLoan as InvoiceLoanRecord } from '../../services/credit-controls';
 import { InvoiceLoanDetailComponent, InvoiceLoanDetailRecord } from './invoice-loan-detail.component';
+import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
+import { ChartData, ChartOptions } from 'chart.js';
+import { FormsModule } from '@angular/forms';
 
 export type InvoiceLoanSummaryRow = {
   groupKey: string;
@@ -23,12 +26,15 @@ export type InvoiceLoanSummaryRow = {
     NgFor,
     TableModule,
     DatePipe,
-    InvoiceLoanDetailComponent
+    InvoiceLoanDetailComponent,
+    NgChartsModule,
+    FormsModule
   ],
   templateUrl: './invoice-loan.html',
   styleUrl: './invoice-loan.css'
 })
 export class InvoiceLoanComponent implements OnInit {
+  @ViewChildren(BaseChartDirective) private charts!: QueryList<BaseChartDirective>;
   @ViewChild('dt') private dataTable?: Table;
 
   invoiceLoans: InvoiceLoanSummaryRow[] = [];
@@ -39,6 +45,20 @@ export class InvoiceLoanComponent implements OnInit {
   selectedSummaryRow?: InvoiceLoanSummaryRow;
   selectedDetailRows: InvoiceLoanDetailRecord[] = [];
   private detailRowsByGroup = new Map<string, InvoiceLoanDetailRecord[]>();
+  clientOptions: string[] = ['All Clients'];
+  selectedClient = 'All Clients';
+
+  totalInvoices = 0;
+  totalClients = 0;
+  reconPassed = 0;
+  reconFailed = 0;
+  latestFileDateLabel = '-';
+  reconPercentage = 0;
+
+  reconDoughnutData!: ChartData<'doughnut'>;
+  reconDoughnutOptions!: ChartOptions<'doughnut'>;
+  invoiceTrendData!: ChartData<'line'>;
+  invoiceTrendOptions!: ChartOptions<'line'>;
 
   totalRecords = 0;
   tableRows = 10;   // rows per page
@@ -70,6 +90,7 @@ export class InvoiceLoanComponent implements OnInit {
         this.invoiceLoans = this.buildSummaryRows(data);
         this.totalRecords = this.invoiceLoans.length;
         this.latestReceivedDate = this.invoiceLoans[0]?.FILE_RECEIVED_DATE ?? null;
+        this.buildAnalytics();
         this.tableFirst = 0;
         this.loading = false;
       },
@@ -92,6 +113,12 @@ export class InvoiceLoanComponent implements OnInit {
     this.tableFirst = 0;
   }
 
+  // Update the line chart whenever the user changes the client dropdown above the analytics section.
+  onClientChange(): void {
+    this.buildTrendChart();
+    this.refreshChartLayout();
+  }
+
   // Open the standalone detail component by passing the selected grouped row and the raw records behind it.
   openDetail(row: InvoiceLoanSummaryRow): void {
     this.selectedSummaryRow = row;
@@ -102,6 +129,134 @@ export class InvoiceLoanComponent implements OnInit {
   closeDetail(): void {
     this.selectedSummaryRow = undefined;
     this.selectedDetailRows = [];
+  }
+
+  // Derive KPI values, dropdown options, and chart datasets from the already-fetched invoice-loan response.
+  private buildAnalytics(): void {
+    this.totalInvoices = this.rawInvoiceLoans.length;
+    this.totalClients = new Set(
+      this.invoiceLoans.map((row) => this.normalizeText(row.CLIENT_NAME)).filter(Boolean)
+    ).size;
+    this.reconPassed = this.invoiceLoans.filter((row) => row.MASTER_RECON_FLAG === 'Yes').length;
+    this.reconFailed = this.invoiceLoans.length - this.reconPassed;
+    this.latestFileDateLabel = this.latestReceivedDate ?? '-';
+    this.reconPercentage = this.invoiceLoans.length
+      ? Math.round((this.reconPassed / this.invoiceLoans.length) * 100)
+      : 0;
+
+    this.clientOptions = [
+      'All Clients',
+      ...Array.from(new Set(
+        this.rawInvoiceLoans
+          .map((record) => this.normalizeText(record.CLIENT_NAME))
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b))
+    ];
+
+    if (!this.clientOptions.includes(this.selectedClient)) {
+      this.selectedClient = 'All Clients';
+    }
+
+    this.buildReconChart();
+    this.buildTrendChart();
+    this.refreshChartLayout();
+  }
+
+  // Build the doughnut chart that shows how many grouped rows passed or failed master recon.
+  private buildReconChart(): void {
+    this.reconDoughnutData = {
+      labels: ['Master Recon Yes', 'Master Recon No'],
+      datasets: [{
+        data: [this.reconPassed, this.reconFailed],
+        backgroundColor: ['#0f7a55', '#e3ebe7'],
+        hoverBackgroundColor: ['#0a5c41', '#d2ddd7'],
+        borderWidth: 0
+      }]
+    };
+
+    this.reconDoughnutOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.label}: ${context.parsed}`
+          }
+        }
+      }
+    };
+  }
+
+  // Build the daily invoice-count line chart for either all clients together or the single client selected in the dropdown.
+  private buildTrendChart(): void {
+    const filteredRecords = this.selectedClient === 'All Clients'
+      ? this.rawInvoiceLoans
+      : this.rawInvoiceLoans.filter((record) => this.normalizeText(record.CLIENT_NAME) === this.selectedClient);
+
+    const countsByDate = new Map<string, number>();
+    for (const record of filteredRecords) {
+      const receivedDate = this.normalizeDate(record.FILE_RECEIVED_DATE);
+      if (!receivedDate) {
+        continue;
+      }
+      countsByDate.set(receivedDate, (countsByDate.get(receivedDate) ?? 0) + 1);
+    }
+
+    const labels = Array.from(countsByDate.keys()).sort((a, b) => a.localeCompare(b));
+    const data = labels.map((label) => countsByDate.get(label) ?? 0);
+
+    this.invoiceTrendData = {
+      labels,
+      datasets: [{
+        label: 'Daily invoice count',
+        data,
+        borderColor: '#2d6dbd',
+        backgroundColor: 'rgba(45, 109, 189, 0.12)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: '#2d6dbd',
+        pointBorderWidth: 2
+      }]
+    };
+
+    this.invoiceTrendOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#5f6f68',
+            maxRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            color: '#5f6f68'
+          },
+          grid: {
+            color: '#d9e4de',
+            borderDash: [4, 4]
+          }
+        }
+      }
+    };
   }
 
   // Group the raw API rows into the six-column summary table and store the underlying raw rows for modal drill-down.
@@ -177,5 +332,15 @@ export class InvoiceLoanComponent implements OnInit {
   // Normalize Yes/No flags from the API so the group-level master recon result is reliable.
   private isYes(value: unknown): boolean {
     return String(value ?? '').trim().toLowerCase() === 'yes';
+  }
+
+  // Resize the charts after data changes so the canvas settles cleanly inside the responsive dashboard cards.
+  private refreshChartLayout(): void {
+    setTimeout(() => {
+      this.charts?.forEach((chart) => {
+        chart.chart?.resize();
+        chart.update();
+      });
+    }, 0);
   }
 }

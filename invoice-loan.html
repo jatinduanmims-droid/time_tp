@@ -28,6 +28,126 @@
     </div>
   </section>
 
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Top KPIs</h2>
+        <p>Quick operational view before the detailed table.</p>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <span class="kpi-label">Total Invoice Groups</span>
+        <strong>{{ totalRecords }}</strong>
+        <span class="kpi-note">Grouped summary rows</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Total Invoices</span>
+        <strong>{{ totalInvoices }}</strong>
+        <span class="kpi-note">Raw invoice records</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Clients Covered</span>
+        <strong>{{ totalClients }}</strong>
+        <span class="kpi-note">Distinct client names</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Recon Passed</span>
+        <strong>{{ reconPassed }}</strong>
+        <span class="kpi-note">Master recon yes</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Recon Failed</span>
+        <strong>{{ reconFailed }}</strong>
+        <span class="kpi-note">Needs review</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Latest File Date</span>
+        <strong class="kpi-date">{{ latestFileDateLabel }}</strong>
+        <span class="kpi-note">Most recent received date</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="analytics-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Recon Health</h2>
+          <p>Quick pass vs fail view from grouped master recon status.</p>
+        </div>
+      </div>
+
+      <div class="chart-card recon-card">
+        <div class="donut-wrap">
+          <div class="chart-frame donut-frame">
+            <canvas
+              baseChart
+              [data]="reconDoughnutData"
+              [options]="reconDoughnutOptions"
+              type="doughnut"
+              chartType="doughnut">
+            </canvas>
+
+            <div class="donut-center-text">
+              <div class="donut-percent">{{ reconPercentage }}%</div>
+              <div class="donut-label">Groups Passed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-left">
+              <span class="dot dot-ok"></span>
+              <span>Master Recon Yes</span>
+            </div>
+            <strong>{{ reconPassed }}</strong>
+          </div>
+          <div class="legend-item">
+            <div class="legend-left">
+              <span class="dot dot-bad"></span>
+              <span>Master Recon No</span>
+            </div>
+            <strong>{{ reconFailed }}</strong>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Invoice Volume Trend</h2>
+          <p>View daily invoice counts for all clients together or one selected bank.</p>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-toolbar">
+          <label class="selector">
+            <span>Client</span>
+            <select [(ngModel)]="selectedClient" (ngModelChange)="onClientChange()">
+              <option *ngFor="let client of clientOptions" [ngValue]="client">{{ client }}</option>
+            </select>
+          </label>
+          <span class="chart-pill">Daily invoice count</span>
+        </div>
+
+        <div class="chart-frame line-frame">
+          <canvas
+            baseChart
+            [data]="invoiceTrendData"
+            [options]="invoiceTrendOptions"
+            type="line"
+            chartType="line">
+          </canvas>
+        </div>
+      </div>
+    </article>
+  </section>
+
   <section class="filter-bar">
     <div class="filter-info">
       Search, sort, and review grouped invoice-loan rows.
