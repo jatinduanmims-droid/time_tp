@@ -78,6 +78,22 @@
             [attr.data-field]="col.field">
             <div class="table-head-cell">
               {{ col.header }}
+              <p-sortIcon [field]="col.field"></p-sortIcon>
+            </div>
+          </th>
+        </tr>
+
+        <tr>
+          <th *ngFor="let col of visibleCols">
+            <div class="filter-wrapper">
+              <i class="pi pi-search"></i>
+              <p-columnFilter
+                [field]="col.field"
+                type="text"
+                matchMode="contains"
+                [showMenu]="false"
+                class="filter-input">
+              </p-columnFilter>
             </div>
           </th>
         </tr>
