@@ -1,0 +1,171 @@
+<div class="dashboard-shell">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Credit Control</p>
+      <h1>MCA Atlas-2 Legal-Entity Recon Dashboard</h1>
+    </div>
+    <div class="date-pill">
+      Snapshot: {{ snapshotDate | date: 'dd MMM yyyy' }}
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Flag KPI Overview</h2>
+      <p>Click any KPI card to filter the recon table</p>
+    </div>
+
+    <div class="kpi-grid">
+      <button class="kpi"
+              [class.active]="activeFilter === 'EMPTY IN A2'"
+              (click)="onFilter('EMPTY IN A2')">
+        <span class="kpi-label">Empty In A2</span>
+        <strong>{{ emptyInA2Count }}</strong>
+      </button>
+
+      <button class="kpi kpi-urgent"
+              [class.active]="activeFilter === 'DIFFERENT'"
+              (click)="onFilter('DIFFERENT')">
+        <span class="kpi-label">Different</span>
+        <strong>{{ differentCount }}</strong>
+      </button>
+
+      <button class="kpi"
+              [class.active]="activeFilter === 'BOTH EMPTY'"
+              (click)="onFilter('BOTH EMPTY')">
+        <span class="kpi-label">Both Empty</span>
+        <strong>{{ bothEmptyCount }}</strong>
+      </button>
+
+      <button class="kpi kpi-total"
+              [class.active]="activeFilter === 'MATCH'"
+              (click)="onFilter('MATCH')">
+        <span class="kpi-label">Match</span>
+        <strong>{{ matchCount }}</strong>
+      </button>
+    </div>
+  </section>
+
+  <section class="filter-bar" *ngIf="activeFilter">
+    <div class="filter-info">
+      Active Filter: <strong>{{ activeFilter }}</strong>
+    </div>
+    <button class="clear-btn" (click)="clearFilter()">Clear Filter</button>
+  </section>
+
+  <section class="panel table-card">
+    <p-table
+      [value]="displayedLegalEntities"
+      [loading]="loading"
+      [paginator]="true"
+      [rows]="10"
+      [totalRecords]="totalRecords"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Page {currentPage} of {totalPages}"
+      [filterDelay]="300"
+      responsiveLayout="scroll"
+      class="compact-table full-width-table custom-header modern-table">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th
+            *ngFor="let col of visibleCols"
+            [style.text-align]="col.align"
+            [pSortableColumn]="col.field"
+            [attr.data-field]="col.field">
+            <div class="table-head-cell">
+              {{ col.header }}
+            </div>
+          </th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row>
+        <tr
+          [ngClass]="{
+            'selected-row': selectedLegalEntity?.RMPM_ID === row.RMPM_ID
+          }"
+          (click)="openDetail(row)">
+          <td
+            *ngFor="let col of visibleCols"
+            [attr.data-field]="col.field"
+            (click)="$event.stopPropagation()"
+            [ngClass]="
+              col.align === 'center'
+                ? 'center-cell'
+                : col.align === 'right'
+                ? 'right-cell'
+                : 'left-cell'
+            ">
+
+            <ng-container *ngIf="col.field === 'STATUS'; else regularCell">
+              <span
+                *ngIf="!row.isEditing"
+                (click)="row.isEditing = true; row._originalStatus = row.STATUS">
+                {{ row.STATUS }}
+              </span>
+
+              <ng-container *ngIf="row.isEditing">
+                <select [(ngModel)]="row.STATUS">
+                  <option value="COMPLETE">COMPLETE</option>
+                  <option value="PENDING">PENDING</option>
+                </select>
+
+                <button
+                  [disabled]="row.STATUS === row._originalStatus"
+                  (click)="saveStatus(row)">
+                  Save
+                </button>
+
+                <button (click)="cancelEdit(row)">
+                  Cancel
+                </button>
+              </ng-container>
+            </ng-container>
+
+            <ng-template #regularCell>
+              <ng-container *ngIf="col.field === 'USER_COMMENTS'; else plainCell">
+                <span
+                  *ngIf="!row.isEditingComments"
+                  (click)="
+                    row.isEditingComments = true;
+                    row._originalComments = row.USER_COMMENTS
+                  ">
+                  {{ row.USER_COMMENTS || '(no comment)' }}
+                </span>
+
+                <ng-container *ngIf="row.isEditingComments">
+                  <input
+                    type="text"
+                    [(ngModel)]="row.USER_COMMENTS"
+                    placeholder="Enter comment"
+                    style="width: 100%;"
+                    (keydown.enter)="saveComment(row)"
+                    (keydown.escape)="cancelCommentEdit(row)" />
+
+                  <button
+                    [disabled]="row.USER_COMMENTS === row._originalComments"
+                    (click)="saveComment(row)">
+                    Save
+                  </button>
+
+                  <button (click)="cancelCommentEdit(row)">
+                    Cancel
+                  </button>
+                </ng-container>
+              </ng-container>
+
+              <ng-template #plainCell>
+                {{ row[col.field] }}
+              </ng-template>
+            </ng-template>
+
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</div>
