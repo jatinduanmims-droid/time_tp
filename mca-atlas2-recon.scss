@@ -203,13 +203,18 @@
 .table-head-cell {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .filter-wrapper {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .center-cell {
@@ -226,12 +231,14 @@
 
 :host ::ng-deep .modern-table .p-datatable-wrapper {
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 :host ::ng-deep .modern-table .p-datatable-table {
   border-collapse: separate;
   border-spacing: 0;
+  width: 100%;
+  table-layout: fixed;
 }
 
 :host ::ng-deep .modern-table .p-datatable-thead > tr > th {
@@ -241,16 +248,47 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
   border-bottom: 1px solid #dce8e2;
+  white-space: normal;
+  word-break: break-word;
+  padding: 8px 10px;
 }
 
 :host ::ng-deep .modern-table .p-datatable-tbody > tr > td {
   font-size: 0.85rem;
   border-bottom: 1px solid #ecf2ef;
   background: rgba(255, 255, 255, 0.92);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding: 9px 10px;
 }
 
 :host ::ng-deep .modern-table .p-datatable-tbody > tr:hover > td {
   background: #f7fbf9;
+}
+
+:host ::ng-deep .modern-table .p-column-filter,
+:host ::ng-deep .modern-table .p-column-filter-element,
+:host ::ng-deep .modern-table .p-column-filter input,
+:host ::ng-deep .modern-table .p-inputtext {
+  width: 100%;
+  min-width: 0;
+}
+
+:host ::ng-deep .modern-table .p-column-filter input,
+:host ::ng-deep .modern-table .p-inputtext {
+  font-size: 0.74rem;
+  padding: 6px 8px;
+}
+
+:host ::ng-deep .modern-table [data-field="LINK_TO_REQUEST"] {
+  word-break: break-all;
+}
+
+:host ::ng-deep .modern-table [data-field="CURRENT_INDUSTRIES"],
+:host ::ng-deep .modern-table [data-field="LEGAL_ENTITY_NAME"],
+:host ::ng-deep .modern-table [data-field="GROUP_NAME"] {
+  min-width: 0;
 }
 
 :host ::ng-deep .modern-table .p-paginator {
@@ -332,5 +370,11 @@
   .filter-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  :host ::ng-deep .modern-table .p-datatable-thead > tr > th,
+  :host ::ng-deep .modern-table .p-datatable-tbody > tr > td {
+    font-size: 0.76rem;
+    padding: 7px 8px;
   }
 }
