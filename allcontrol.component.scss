@@ -123,14 +123,31 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
+  align-items: stretch;
 }
 
 .category-card {
   padding: 14px;
-  background: var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  min-height: 270px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 248, 0.98));
+  border: 1px solid #cfdad4;
   backdrop-filter: blur(10px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.category-card.trade {
+  background: linear-gradient(180deg, rgba(233, 247, 240, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.category-card.credit {
+  background: linear-gradient(180deg, rgba(236, 243, 252, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.category-card.supply {
+  background: linear-gradient(180deg, rgba(252, 244, 235, 0.98), rgba(255, 255, 255, 0.98));
 }
 
 .category-card::before {
@@ -203,11 +220,11 @@
 
 .selector select {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid #c4d1cb;
   border-radius: 12px;
   padding: 10px 11px;
   font: inherit;
-  background: var(--panel-strong);
+  background: #ffffff;
   color: var(--ink-900);
   outline: none;
 }
@@ -247,13 +264,14 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  flex: 1 1 auto;
 }
 
 .stat {
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid var(--line-soft);
-  background: linear-gradient(180deg, #fbfcfb, #ffffff);
+  border: 1px solid #d8e2dd;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .stat span {
@@ -292,21 +310,22 @@
 .placeholder {
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px dashed #cad6d0;
-  background: rgba(255, 255, 255, 0.74);
+  border: 1px dashed #b9c9c1;
+  background: rgba(255, 255, 255, 0.9);
   color: var(--ink-700);
   font-size: 0.72rem;
   line-height: 1.35;
   min-height: 74px;
   display: grid;
   align-content: center;
+  flex: 1 1 auto;
 }
 
 .chart-shell {
   margin-top: 12px;
   padding: 14px;
-  background: var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 247, 0.98));
+  border: 1px solid #cfdad4;
   backdrop-filter: blur(10px);
 }
 
