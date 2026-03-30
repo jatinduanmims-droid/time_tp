@@ -48,7 +48,15 @@ describe('DemoDashboardComponent', () => {
 
     component.selectCalendarDay(control.id, 5);
 
-    expect(component.getDisplayStats(control)[0].value).toBe('5 Mar');
-    expect(component.getDisplayStats(control)[1].value).toBe('Failed');
+    expect(component.getDisplayStats(control)[0].value).toBe('5 Mar 2026');
+    expect(component.getDisplayStats(control)[1].value).toBe('Passed');
+  });
+
+  it('should move the calendar month backward', () => {
+    const control = component.getActiveControl();
+
+    component.shiftCalendarMonth(control.id, -1);
+
+    expect(component.getMonthLabel(control.id)).toBe('February 2026');
   });
 });

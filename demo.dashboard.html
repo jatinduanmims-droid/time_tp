@@ -70,13 +70,19 @@
           <div class="calendar-card">
             <div class="calendar-head">
               <div>
-                <h4>Failure Calendar</h4>
-                <small>March 2026</small>
+                <h4>Status Calendar</h4>
+                <small>Passed and failed daily status</small>
               </div>
               <div class="calendar-summary">
                 <div class="calendar-badge pass">{{ getStatusCount(control, 'passed') }} Passed</div>
                 <div class="calendar-badge fail">{{ getStatusCount(control, 'failed') }} Failed</div>
               </div>
+            </div>
+
+            <div class="calendar-nav">
+              <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
+              <div class="calendar-month">{{ getMonthLabel(control.id) }}</div>
+              <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, 1)">Next</button>
             </div>
 
             <div class="weekdays">

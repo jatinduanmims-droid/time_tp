@@ -37,6 +37,7 @@ interface DashboardCategory {
 })
 export class DemoDashboardComponent {
   readonly snapshotLabel = 'Snapshot: 30 Mar 2026';
+  private readonly defaultCalendarMonth = new Date(2026, 2, 1);
 
   readonly categories: DashboardCategory[] = [
     {
@@ -212,6 +213,11 @@ export class DemoDashboardComponent {
   activeCategoryKey: DashboardCategory['key'] = 'trade';
   activeControlId = this.selectedControlByCategory['trade'];
   selectedCalendarDayByControl: Record<string, number | null> = {};
+  viewedMonthByControl: Record<string, string> = Object.fromEntries(
+    this.categories.flatMap((category) =>
+      category.controls.map((control) => [control.id, this.getMonthKey(this.defaultCalendarMonth)])
+    )
+  );
 
   selectControl(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
@@ -258,6 +264,22 @@ export class DemoDashboardComponent {
       this.selectedCalendarDayByControl[controlId] === day ? null : day;
   }
 
+  shiftCalendarMonth(controlId: string, delta: number): void {
+    const viewedMonth = this.getViewedMonth(controlId);
+    viewedMonth.setMonth(viewedMonth.getMonth() + delta);
+    viewedMonth.setDate(1);
+
+    this.viewedMonthByControl[controlId] = this.getMonthKey(viewedMonth);
+    this.selectedCalendarDayByControl[controlId] = null;
+  }
+
+  getMonthLabel(controlId: string): string {
+    return this.getViewedMonth(controlId).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
   getDisplayStats(control: DashboardControl): ControlStat[] {
     const selectedDay = this.selectedCalendarDayByControl[control.id];
 
@@ -265,19 +287,17 @@ export class DemoDashboardComponent {
       return control.stats;
     }
 
-    const selectedEntry = control.calendarEntries.find((entry) => entry.day === selectedDay);
-
-    if (!selectedEntry) {
-      return control.stats;
-    }
-
-    const outcome = selectedEntry.status === 'failed' ? 'Failed' : 'Passed';
-    const outcomeDetail = selectedEntry.status === 'failed' ? 'Requires review' : 'Processed successfully';
-    const impactValue = selectedEntry.status === 'failed' ? `${(selectedDay % 3) + 1} cases` : `${(selectedDay % 4) + 2} items`;
-    const impactNote = selectedEntry.status === 'failed' ? 'Flagged on selected day' : 'Cleared on selected day';
+    const viewedMonth = this.getViewedMonth(control.id);
+    const status = this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), selectedDay);
+    const outcome = status === 'failed' ? 'Failed' : 'Passed';
+    const outcomeDetail = status === 'failed' ? 'Requires review' : 'Processed successfully';
+    const impactValue = status === 'failed' ? `${(selectedDay % 3) + 1} cases` : `${(selectedDay % 4) + 2} items`;
+    const impactNote = status === 'failed' ? 'Flagged on selected day' : 'Cleared on selected day';
+    const shortMonth = viewedMonth.toLocaleDateString('en-US', { month: 'short' });
+    const year = viewedMonth.getFullYear();
 
     return [
-      { label: 'Selected Day', value: `${selectedDay} Mar`, note: 'Calendar drill-down' },
+      { label: 'Selected Day', value: `${selectedDay} ${shortMonth} ${year}`, note: 'Calendar drill-down' },
       { label: 'Status', value: outcome, note: outcomeDetail },
       { label: 'Impact', value: impactValue, note: impactNote }
     ];
@@ -293,8 +313,9 @@ export class DemoDashboardComponent {
     selected: boolean;
     dayNumber: number | null;
   }> {
-    const totalDays = 30;
-    const startOffset = 5;
+    const viewedMonth = this.getViewedMonth(control.id);
+    const totalDays = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 0).getDate();
+    const startOffset = (new Date(viewedMonth.getFullYear(), viewedMonth.getMonth(), 1).getDay() + 6) % 7;
     const selectedDay = this.selectedCalendarDayByControl[control.id];
     const cells = Array.from({ length: startOffset }, () => ({
       label: '',
@@ -308,15 +329,15 @@ export class DemoDashboardComponent {
     }));
 
     for (let day = 1; day <= totalDays; day += 1) {
-      const entry = control.calendarEntries.find((calendarEntry) => calendarEntry.day === day);
+      const status = this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
 
       cells.push({
         label: String(day),
         muted: false,
-        fail: entry?.status === 'failed',
-        passed: entry?.status === 'passed',
-        today: day === 11,
-        clickable: Boolean(entry),
+        fail: status === 'failed',
+        passed: status === 'passed',
+        today: this.isToday(viewedMonth, day),
+        clickable: true,
         selected: selectedDay === day,
         dayNumber: day
       });
@@ -326,6 +347,46 @@ export class DemoDashboardComponent {
   }
 
   getStatusCount(control: DashboardControl, status: 'passed' | 'failed'): number {
-    return control.calendarEntries.filter((entry) => entry.status === status).length;
+    const viewedMonth = this.getViewedMonth(control.id);
+    const totalDays = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 0).getDate();
+    let count = 0;
+
+    for (let day = 1; day <= totalDays; day += 1) {
+      if (this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day) === status) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
+  private getViewedMonth(controlId: string): Date {
+    const monthKey = this.viewedMonthByControl[controlId] ?? this.getMonthKey(this.defaultCalendarMonth);
+    const [year, month] = monthKey.split('-').map(Number);
+
+    return new Date(year, month - 1, 1);
+  }
+
+  private getMonthKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  private getDayStatus(control: DashboardControl, year: number, monthIndex: number, day: number): 'passed' | 'failed' {
+    const threshold = control.statusLabel === 'Needs Focus'
+      ? 34
+      : control.statusLabel === 'Watchlist'
+        ? 24
+        : 14;
+    const seed = this.hashValue(`${control.id}-${year}-${monthIndex + 1}-${day}`);
+
+    return seed % 100 < threshold ? 'failed' : 'passed';
+  }
+
+  private isToday(viewedMonth: Date, day: number): boolean {
+    return viewedMonth.getFullYear() === 2026 && viewedMonth.getMonth() === 2 && day === 11;
+  }
+
+  private hashValue(input: string): number {
+    return Array.from(input).reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
   }
 }

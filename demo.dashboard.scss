@@ -334,7 +334,7 @@
 .calendar-card {
   padding: 8px;
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto;
   gap: 6px;
   min-height: 100%;
   border-radius: 14px;
@@ -385,6 +385,31 @@
 .calendar-badge.fail {
   background: var(--fail-soft);
   color: #a93e3e;
+}
+
+.calendar-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.calendar-nav-btn {
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink-700);
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.calendar-month {
+  text-align: center;
+  color: var(--ink-700);
+  font-size: 0.67rem;
+  font-weight: 700;
 }
 
 .weekdays,
