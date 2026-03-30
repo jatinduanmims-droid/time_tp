@@ -2,49 +2,30 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-type ControlStat = {
+interface ControlStat {
   label: string;
   value: string;
   note: string;
-};
+}
 
-type ChartKpi = {
-  label: string;
-  value: string;
-};
-
-type ChartPoint = {
-  label: string;
-  value: number;
-};
-
-type DashboardControl = {
+interface DashboardControl {
   id: string;
   name: string;
   shortName: string;
-  source: string;
-  sourceLabel: string;
-  description: string;
   statusLabel: string;
   statusColor: string;
   statusBg: string;
-  stats?: ControlStat[];
-  chartKpis?: ChartKpi[];
-  chart?: {
-    title: string;
-    subtitle: string;
-    points: ChartPoint[];
-  };
-  placeholder?: boolean;
-};
+  stats: ControlStat[];
+  failureDays: number[];
+}
 
-type DashboardCategory = {
-  key: string;
+interface DashboardCategory {
+  key: 'trade' | 'credit' | 'supply';
   name: string;
   note: string;
   accent: string;
   controls: DashboardControl[];
-};
+}
 
 @Component({
   selector: 'app-demo-dashboard',
@@ -54,267 +35,213 @@ type DashboardCategory = {
   styleUrls: ['./demo.dashboard.scss']
 })
 export class DemoDashboardComponent {
-  readonly snapshotLabel = '30 Mar 2026';
+  readonly snapshotLabel = 'Snapshot: 30 Mar 2026';
 
   readonly categories: DashboardCategory[] = [
     {
       key: 'trade',
       name: 'Trade Control',
-      note: 'Incoming, cancellation, and deadline follow-up controls',
+      note: 'Incoming requests, cancellations, and document follow-up controls',
       accent: 'var(--trade)',
       controls: [
         {
-          id: 'incoming-requests',
+          id: 'incoming-requests-management',
           name: 'Incoming Requests Management Control',
-          shortName: 'Jatin-dashboard',
-          source: 'EmailService.getBatchEmails()',
-          sourceLabel: 'Trade Control Feed',
-          description: 'Tracks request mix, urgency, and SLA health for incoming trade-control activity.',
-          statusLabel: 'Healthy',
+          shortName: 'Incoming Requests',
+          statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
           stats: [
-            { label: 'SLA Met', value: '86%', note: 'Health' },
-            { label: 'Urgent', value: '27', note: 'Priority' },
-            { label: 'Overdue', value: '12', note: 'Past SLA' }
+            { label: 'Pass Rate', value: '98%', note: '30 day average' },
+            { label: 'Open Items', value: '12', note: 'Awaiting action' },
+            { label: 'Fails', value: '2', note: 'This month' }
           ],
-          chartKpis: [
-            { label: 'Total Requests', value: '186' },
-            { label: 'Amendments', value: '54' },
-            { label: 'Issuance', value: '63' }
-          ],
-          chart: {
-            title: 'SLA Pressure Mix',
-            subtitle: 'Incoming request workload',
-            points: [
-              { label: 'Due 24h', value: 18 },
-              { label: 'Due 48h', value: 26 },
-              { label: 'Overdue', value: 12 },
-              { label: 'Urgent', value: 27 }
-            ]
-          }
+          failureDays: [5, 15]
         },
         {
           id: 'evergreen-cancellations',
           name: 'Evergreen Cancellations Control',
-          shortName: 'Cancellation Requests',
-          source: 'EmailService.getBatchCancellations()',
-          sourceLabel: 'Cancellation Feed',
-          description: 'Measures evergreen and non-evergreen cancellation demand with due-window visibility.',
+          shortName: 'Evergreen Cancellations',
           statusLabel: 'Watchlist',
           statusColor: 'var(--warn)',
           statusBg: 'rgba(197, 143, 25, 0.14)',
           stats: [
-            { label: 'SLA Met', value: '78%', note: 'Health' },
-            { label: 'Non-Evg', value: '14', note: 'Control specific' },
-            { label: 'Overdue', value: '9', note: 'Past SLA' }
+            { label: 'Cancelled', value: '7', note: 'This week' },
+            { label: 'Exceptions', value: '2', note: 'Pending review' },
+            { label: 'Recovery', value: '91%', note: 'Processed on time' }
           ],
-          chartKpis: [
-            { label: 'Total Today', value: '64' },
-            { label: 'Cancellation', value: '38' },
-            { label: 'Urgent', value: '11' }
-          ],
-          chart: {
-            title: 'Cancellation Pressure Mix',
-            subtitle: 'Evergreen cancellation workload',
-            points: [
-              { label: 'Due 24h', value: 9 },
-              { label: 'Due 48h', value: 13 },
-              { label: 'Overdue', value: 9 },
-              { label: 'Urgent', value: 11 }
-            ]
-          }
+          failureDays: [7, 20]
         },
         {
-          id: 'sblc-followup',
+          id: 'documents-checking-sblc',
           name: 'Documents Checking Deadline Follow up on SBLC',
-          shortName: 'SBLC Follow up',
-          source: 'EmailService.getBatchEmails()',
-          sourceLabel: 'Trade Control Feed',
-          description: 'Uses the same current dataset as the incoming requests dashboard for now.',
-          statusLabel: 'Healthy',
+          shortName: 'SBLC Follow Up',
+          statusLabel: 'Needs Focus',
+          statusColor: '#a93e3e',
+          statusBg: 'rgba(217, 108, 108, 0.15)',
+          stats: [
+            { label: 'Due Soon', value: '14', note: 'Within 48 hours' },
+            { label: 'Escalations', value: '4', note: 'Supervisor queue' },
+            { label: 'Pass Rate', value: '84%', note: 'Below target' }
+          ],
+          failureDays: [11, 23]
+        },
+        {
+          id: 'documents-checking-lc',
+          name: 'Documents Checking Deadline Follow up on L/C',
+          shortName: 'L/C Follow Up',
+          statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
           stats: [
-            { label: 'SLA Met', value: '86%', note: 'Shared source' },
-            { label: 'Urgent', value: '27', note: 'Shared source' },
-            { label: 'Overdue', value: '12', note: 'Shared source' }
+            { label: 'Checked', value: '26', note: 'Current batch' },
+            { label: 'Open Cases', value: '9', note: 'Need follow-up' },
+            { label: 'Failures', value: '1', note: 'Month to date' }
           ],
-          chartKpis: [
-            { label: 'Total Requests', value: '186' },
-            { label: 'Amendments', value: '54' },
-            { label: 'Issuance', value: '63' }
-          ],
-          chart: {
-            title: 'SBLC Follow-up Mix',
-            subtitle: 'Shared preview dataset',
-            points: [
-              { label: 'Due 24h', value: 18 },
-              { label: 'Due 48h', value: 26 },
-              { label: 'Overdue', value: 12 },
-              { label: 'Urgent', value: 27 }
-            ]
-          }
-        },
-        {
-          id: 'lc-followup',
-          name: 'Documents Checking Deadline Follow up on L/C',
-          shortName: 'L/C Follow up',
-          source: 'KPI logic pending',
-          sourceLabel: 'KPI Setup Pending',
-          description: 'Listed in the control map, KPI logic can be added later.',
-          statusLabel: 'Coming Soon',
-          statusColor: 'var(--ink-700)',
-          statusBg: 'rgba(114, 129, 122, 0.14)',
-          placeholder: true
+          failureDays: [18]
         }
       ]
     },
     {
       key: 'credit',
       name: 'Credit Control',
-      note: 'Market, renewed deals, and legal entity validation',
+      note: 'Market, renewed deals, and legal entity validations',
       accent: 'var(--credit)',
       controls: [
         {
-          id: 'market-facility',
+          id: 'market-facility-validation',
           name: 'Market Facility Validation',
           shortName: 'Market Facility',
-          source: 'KPI logic pending',
-          sourceLabel: 'KPI Setup Pending',
-          description: 'Control is kept visible, KPI wiring is still pending.',
-          statusLabel: 'Coming Soon',
-          statusColor: 'var(--ink-700)',
-          statusBg: 'rgba(114, 129, 122, 0.14)',
-          placeholder: true
+          statusLabel: 'Stable',
+          statusColor: 'var(--success)',
+          statusBg: 'rgba(32, 116, 80, 0.12)',
+          stats: [
+            { label: 'Validated', value: '45', note: 'Current cycle' },
+            { label: 'Pending', value: '5', note: 'Need review' },
+            { label: 'Failures', value: '1', note: 'Month to date' }
+          ],
+          failureDays: [9]
         },
         {
-          id: 'renewed-deals',
+          id: 'renewed-deals-validation',
           name: 'Renewed Deals Validation',
           shortName: 'Renewed Deals',
-          source: 'KPI logic pending',
-          sourceLabel: 'KPI Setup Pending',
-          description: 'Control is kept visible, KPI wiring is still pending.',
-          statusLabel: 'Coming Soon',
-          statusColor: 'var(--ink-700)',
-          statusBg: 'rgba(114, 129, 122, 0.14)',
-          placeholder: true
-        },
-        {
-          id: 'legal-entity',
-          name: 'Legal Entity Validation',
-          shortName: 'MCA-atlas2',
-          source: 'CreditControls.getMCAAtlas2Report()',
-          sourceLabel: 'Credit Recon Feed',
-          description: 'Tracks recon flag buckets and mismatch-driven validation work.',
-          statusLabel: 'Needs Focus',
+          statusLabel: 'Watchlist',
           statusColor: 'var(--warn)',
           statusBg: 'rgba(197, 143, 25, 0.14)',
           stats: [
-            { label: 'Match', value: '101', note: 'Aligned' },
-            { label: 'Different', value: '30', note: 'Mismatch' },
-            { label: 'Empty A2', value: '11', note: 'Missing' }
+            { label: 'Renewals', value: '19', note: 'Current batch' },
+            { label: 'Pending', value: '3', note: 'Need maker check' },
+            { label: 'Failures', value: '2', note: 'Month to date' }
           ],
-          chartKpis: [
-            { label: 'Both Empty', value: '8' },
-            { label: 'Loaded Rows', value: '142' },
-            { label: 'Mismatch Share', value: '21%' }
+          failureDays: [6, 21]
+        },
+        {
+          id: 'legal-entity-validation',
+          name: 'Legal Entity Validation',
+          shortName: 'Legal Entity',
+          statusLabel: 'Needs Focus',
+          statusColor: '#a93e3e',
+          statusBg: 'rgba(217, 108, 108, 0.15)',
+          stats: [
+            { label: 'Matched', value: '101', note: 'Aligned records' },
+            { label: 'Mismatch', value: '30', note: 'Require review' },
+            { label: 'Empty', value: '11', note: 'Missing records' }
           ],
-          chart: {
-            title: 'Recon Flag Distribution',
-            subtitle: 'Legal entity validation mix',
-            points: [
-              { label: 'Match', value: 101 },
-              { label: 'Different', value: 30 },
-              { label: 'Empty A2', value: 11 },
-              { label: 'Both Empty', value: 8 }
-            ]
-          }
+          failureDays: [4, 16, 24]
         }
       ]
     },
     {
       key: 'supply',
       name: 'Supply Chain Control',
-      note: 'Supply-chain financing controls',
+      note: 'Supply-chain financing monitoring',
       accent: 'var(--supply)',
       controls: [
         {
           id: 'supply-chain-financing',
           name: 'Supply Chain Financing',
-          shortName: 'Invoice loan',
-          source: 'CreditControls.getInvoiceLoanReport()',
-          sourceLabel: 'Supply Chain Feed',
-          description: 'Shows grouped invoice-loan counts and recon performance for supply-chain financing.',
+          shortName: 'Supply Chain Financing',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
           stats: [
-            { label: 'Groups', value: '68', note: 'Summary rows' },
-            { label: 'Passed', value: '49', note: 'Recon yes' },
-            { label: 'Failed', value: '19', note: 'Recon no' }
+            { label: 'Invoices', value: '214', note: 'Current month' },
+            { label: 'Clients', value: '19', note: 'Active accounts' },
+            { label: 'Failures', value: '2', note: 'Month to date' }
           ],
-          chartKpis: [
-            { label: 'Invoices', value: '214' },
-            { label: 'Clients', value: '19' },
-            { label: 'Latest File', value: '28 Mar' }
-          ],
-          chart: {
-            title: 'Invoice Volume Trend',
-            subtitle: 'Recent grouped activity',
-            points: [
-              { label: '24 Mar', value: 18 },
-              { label: '25 Mar', value: 24 },
-              { label: '26 Mar', value: 17 },
-              { label: '27 Mar', value: 31 },
-              { label: '28 Mar', value: 26 }
-            ]
-          }
+          failureDays: [8, 28]
         }
       ]
     }
   ];
 
-  selectedControlByCategory = Object.fromEntries(
-    this.categories.map(category => [category.key, category.controls[0]?.id ?? ''])
+  selectedControlByCategory: Record<string, string> = Object.fromEntries(
+    this.categories.map((category) => [category.key, category.controls[0]?.id ?? ''])
   );
 
-  activeControlId = this.categories[0]?.controls[0]?.id ?? '';
+  activeCategoryKey: DashboardCategory['key'] = 'trade';
+  activeControlId = this.selectedControlByCategory['trade'];
 
-  getSelectedControl(category: DashboardCategory): DashboardControl {
-    const selectedId = this.selectedControlByCategory[category.key];
-    return category.controls.find(control => control.id === selectedId) ?? category.controls[0];
+  selectControl(categoryKey: DashboardCategory['key']): void {
+    this.activeCategoryKey = categoryKey;
+    this.activeControlId = this.selectedControlByCategory[categoryKey];
+  }
+
+  handleControlChange(categoryKey: DashboardCategory['key']): void {
+    this.activeCategoryKey = categoryKey;
+    this.activeControlId = this.selectedControlByCategory[categoryKey];
+  }
+
+  getSelectedControl(category: DashboardCategory): DashboardControl | undefined {
+    return category.controls.find(
+      (control) => control.id === this.selectedControlByCategory[category.key]
+    ) ?? category.controls[0];
+  }
+
+  getActiveCategory(): DashboardCategory {
+    return this.categories.find((category) => category.key === this.activeCategoryKey) ?? this.categories[0];
   }
 
   getActiveControl(): DashboardControl {
-    for (const category of this.categories) {
-      const match = category.controls.find(control => control.id === this.activeControlId);
-      if (match) {
-        return match;
-      }
-    }
-    return this.categories[0].controls[0];
+    const activeCategory = this.getActiveCategory();
+
+    return activeCategory.controls.find(
+      (control) => control.id === this.activeControlId
+    ) ?? activeCategory.controls[0];
   }
 
   getActiveCategoryAccent(): string {
-    const category = this.categories.find(item =>
-      item.controls.some(control => control.id === this.activeControlId)
-    );
-    return category?.accent ?? 'var(--brand)';
+    return this.getActiveCategory().accent;
   }
 
-  getMaxChartValue(points: ChartPoint[] | undefined): number {
+  getMaxChartValue(points?: Array<{ value: number }>): number {
     if (!points?.length) {
       return 1;
     }
-    return Math.max(...points.map(point => point.value), 1);
+
+    return Math.max(...points.map((point) => point.value), 1);
   }
 
-  selectControl(categoryKey: string): void {
-    this.activeControlId = this.selectedControlByCategory[categoryKey];
-  }
+  getCalendarDays(failureDays: number[]): Array<{ label: string; muted: boolean; fail: boolean; today: boolean }> {
+    const totalDays = 30;
+    const startOffset = 5;
+    const cells = Array.from({ length: startOffset }, () => ({
+      label: '',
+      muted: true,
+      fail: false,
+      today: false
+    }));
 
-  handleControlChange(categoryKey: string): void {
-    this.activeControlId = this.selectedControlByCategory[categoryKey];
+    for (let day = 1; day <= totalDays; day += 1) {
+      cells.push({
+        label: String(day),
+        muted: false,
+        fail: failureDays.includes(day),
+        today: day === 11
+      });
+    }
+
+    return cells;
   }
 }

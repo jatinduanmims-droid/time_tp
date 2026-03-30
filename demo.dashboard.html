@@ -4,166 +4,117 @@
 
   <section class="topbar">
     <div>
-      <p class="eyebrow">Compact Overview</p>
       <h1>Unified Controls Dashboard</h1>
-      <p>Three compact category cards on top and one shared chart below, so the first view stays close to a single-screen dashboard.</p>
+      <p>Category-led layout with children stacked vertically, each showing KPI snapshots and failure calendar dates.</p>
     </div>
 
     <div class="topbar-meta">
-      <div class="meta-pill">Snapshot: {{ snapshotLabel }}</div>
-      <div class="meta-pill">3 Category Cards</div>
-      <div class="meta-pill">Dropdown Control Switch</div>
+      <div class="meta-pill">{{ snapshotLabel }}</div>
     </div>
   </section>
 
-  <section class="grid">
-    <article
-      class="category-card"
-      *ngFor="let category of categories"
-      [ngClass]="category.key"
-      [style.--accent]="category.accent"
-      (click)="selectControl(category.key)">
-      <div class="category-head">
-        <div class="category-title">
-          <i class="category-dot"></i>
-          <div>
-            <h2>{{ category.name }}</h2>
-            <p class="category-note">{{ category.note }}</p>
+  <section class="workspace">
+    <aside class="category-stack">
+      <article
+        class="category-card"
+        *ngFor="let category of categories"
+        [ngClass]="[category.key, activeCategoryKey === category.key ? 'active' : '']"
+        [style.--accent]="category.accent"
+        (click)="selectControl(category.key)">
+        <div class="category-head">
+          <div class="category-title">
+            <i class="category-dot"></i>
+            <div>
+              <h2>{{ category.name }}</h2>
+              <p class="category-note">{{ category.note }}</p>
+            </div>
           </div>
+          <div class="mini-pill">{{ category.controls.length }} {{ category.controls.length === 1 ? 'child' : 'children' }}</div>
         </div>
 
-        <div class="mini-pill">{{ category.controls.length }} controls</div>
-      </div>
-
-      <div class="selector">
-        <label>Select Control</label>
-        <select
-          [(ngModel)]="selectedControlByCategory[category.key]"
-          (ngModelChange)="handleControlChange(category.key)"
-          (click)="$event.stopPropagation()">
-          <option *ngFor="let control of category.controls" [ngValue]="control.id">
+        <div class="child-chip-list">
+          <button
+            class="child-chip"
+            *ngFor="let control of category.controls"
+            type="button"
+            [class.selected]="selectedControlByCategory[category.key] === control.id"
+            (click)="$event.stopPropagation(); selectedControlByCategory[category.key] = control.id; handleControlChange(category.key)">
             {{ control.name }}
-          </option>
-        </select>
+          </button>
+        </div>
+      </article>
+    </aside>
+
+    <section class="details-shell" *ngIf="getActiveCategory() as activeCategory">
+      <div class="details-head">
+        <div>
+          <h2>{{ activeCategory.name }}</h2>
+          <p>{{ activeCategory.note }}</p>
+        </div>
+        <div class="details-meta">{{ activeCategory.controls.length }} active {{ activeCategory.controls.length === 1 ? 'child' : 'children' }}</div>
       </div>
 
-      <ng-container *ngIf="getSelectedControl(category) as control">
-        <div class="control-title-row">
-          <div>
-            <h3>{{ control.shortName }}</h3>
-            <p class="control-sub">{{ control.sourceLabel }}</p>
-          </div>
+      <div class="child-list">
+        <article
+          class="child-row"
+          *ngFor="let control of activeCategory.controls"
+          [class.is-selected]="activeControlId === control.id">
+          <div class="child-info">
+            <div class="child-name-row">
+              <div>
+                <h3>{{ control.name }}</h3>
+                <p>{{ control.shortName }}</p>
+              </div>
 
-          <div
-            class="status-pill"
-            [style.--status-bg]="control.statusBg"
-            [style.--status-color]="control.statusColor">
-            {{ control.statusLabel }}
-          </div>
-        </div>
-
-        <div class="placeholder" *ngIf="control.placeholder; else kpiStats">
-          KPI logic is pending for this control. It remains in the dropdown so the structure stays ready for future wiring.
-        </div>
-
-        <ng-template #kpiStats>
-          <div class="stats-grid">
-            <div class="stat" *ngFor="let stat of control.stats">
-              <span>{{ stat.label }}</span>
-              <strong>{{ stat.value }}</strong>
-              <small>{{ stat.note }}</small>
-            </div>
-          </div>
-        </ng-template>
-      </ng-container>
-    </article>
-  </section>
-
-  <section class="chart-shell" *ngIf="getActiveControl() as activeControl">
-    <div class="chart-head">
-      <div>
-        <h2>{{ activeControl.name }}</h2>
-        <p>{{ activeControl.description }}</p>
-      </div>
-      <div class="source">{{ activeControl.sourceLabel }}</div>
-    </div>
-
-    <div class="chart-kpis">
-      <ng-container *ngIf="activeControl.placeholder; else activeMetrics">
-        <div class="chart-kpi">
-          <span>Status</span>
-          <strong>Pending</strong>
-        </div>
-        <div class="chart-kpi">
-          <span>Dropdown</span>
-          <strong>Ready</strong>
-        </div>
-        <div class="chart-kpi">
-          <span>Chart</span>
-          <strong>Deferred</strong>
-        </div>
-      </ng-container>
-
-      <ng-template #activeMetrics>
-        <div class="chart-kpi" *ngFor="let item of activeControl.chartKpis">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-        </div>
-      </ng-template>
-    </div>
-
-    <div class="chart-stage">
-      <div class="chart-stage-top">
-        <h3>{{ activeControl.placeholder ? 'KPI Preview Pending' : activeControl.chart?.title }}</h3>
-        <small>
-          {{ activeControl.placeholder ? 'Data can be wired when control logic is available' : activeControl.chart?.subtitle }}
-        </small>
-      </div>
-
-      <div class="bars">
-        <ng-container *ngIf="activeControl.placeholder; else chartBars">
-          <div class="bar-col">
-            <div class="bar-value">-</div>
-            <div class="bar-wrap">
-              <div class="bar bar-muted" style="height: 20%;"></div>
-            </div>
-            <div class="bar-label">Awaiting KPI</div>
-          </div>
-          <div class="bar-col">
-            <div class="bar-value">-</div>
-            <div class="bar-wrap">
-              <div class="bar bar-muted" style="height: 28%;"></div>
-            </div>
-            <div class="bar-label">Future Metric</div>
-          </div>
-          <div class="bar-col">
-            <div class="bar-value">-</div>
-            <div class="bar-wrap">
-              <div class="bar bar-muted" style="height: 24%;"></div>
-            </div>
-            <div class="bar-label">Future Metric</div>
-          </div>
-        </ng-container>
-
-        <ng-template #chartBars>
-          <div class="bar-col" *ngFor="let point of activeControl.chart?.points">
-            <div class="bar-value">{{ point.value }}</div>
-            <div class="bar-wrap">
               <div
-                class="bar"
-                [style.height.%]="(point.value / getMaxChartValue(activeControl.chart?.points)) * 100"
-                [style.--bar-color]="getActiveCategoryAccent()">
+                class="status-pill"
+                [style.--status-bg]="control.statusBg"
+                [style.--status-color]="control.statusColor">
+                {{ control.statusLabel }}
               </div>
             </div>
-            <div class="bar-label">{{ point.label }}</div>
-          </div>
-        </ng-template>
-      </div>
-    </div>
 
-    <div class="foot-note">
-      Future-proof behavior:
-      add a control to <code>categories[].controls[]</code> and it appears in the relevant category dropdown automatically without increasing page height much.
-    </div>
+            <div class="stats-grid">
+              <div class="stat" *ngFor="let stat of control.stats">
+                <span>{{ stat.label }}</span>
+                <strong>{{ stat.value }}</strong>
+                <small>{{ stat.note }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="calendar-card">
+            <div class="calendar-head">
+              <div>
+                <h4>Failure Calendar</h4>
+                <small>March 2026</small>
+              </div>
+              <div class="calendar-badge">{{ control.failureDays.length }} {{ control.failureDays.length === 1 ? 'failure day' : 'failure days' }}</div>
+            </div>
+
+            <div class="weekdays">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+            </div>
+
+            <div class="calendar-grid">
+              <div
+                class="day"
+                *ngFor="let day of getCalendarDays(control.failureDays)"
+                [class.muted]="day.muted"
+                [class.fail]="day.fail"
+                [class.today]="day.today">
+                {{ day.label }}
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
   </section>
 </div>
