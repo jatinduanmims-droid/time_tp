@@ -2,6 +2,9 @@
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
+  <!-- Top header:
+       - Title/subtitle text is controlled here.
+       - Header height/spacing is mostly controlled from `.topbar` in SCSS. -->
   <section class="topbar">
     <div>
       <h1>Unified Controls Dashboard</h1>
@@ -13,7 +16,13 @@
     </div>
   </section>
 
+  <!-- Main two-column workspace:
+       - Left = parent controls
+       - Right = active category children
+       - Overall column widths are controlled from `.workspace` in SCSS. -->
   <section class="workspace">
+    <!-- Parent control cards.
+         If you want to change what appears under each parent control, edit this block. -->
     <aside class="category-stack">
       <article
         class="category-card"
@@ -30,23 +39,53 @@
           </div>
           <div class="mini-pill">{{ category.controls.length }} {{ category.controls.length === 1 ? 'child' : 'children' }}</div>
         </div>
+
+        <div class="tminus-grid">
+          <button
+            type="button"
+            class="tminus-pill failed"
+            [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'failed'"
+            (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'failed')">
+            <span>T-1 Failed</span>
+            <strong>{{ getTMinusOneCount(category, 'failed') }}</strong>
+          </button>
+
+          <button
+            type="button"
+            class="tminus-pill passed"
+            [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'passed'"
+            (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'passed')">
+            <span>T-1 Passed</span>
+            <strong>{{ getTMinusOneCount(category, 'passed') }}</strong>
+          </button>
+        </div>
       </article>
     </aside>
 
+    <!-- Right-side details panel.
+         Child rows shown here come from `getVisibleControls(activeCategory)` in the TS file,
+         which means this area reacts to parent selection and T-1 pass/fail filters. -->
     <section class="details-shell" *ngIf="getActiveCategory() as activeCategory">
       <div class="details-head">
         <div>
           <h2>{{ activeCategory.name }}</h2>
         </div>
-        <div class="details-meta">{{ activeCategory.controls.length }} active {{ activeCategory.controls.length === 1 ? 'child' : 'children' }}</div>
+        <div class="details-meta">{{ getActiveFilterLabel() }}</div>
       </div>
 
+      <!-- Child rows:
+           Each row is one child control under the selected parent.
+           To change row structure, edit this block.
+           To change child row height/spacing, use `.child-row` in SCSS. -->
       <div class="child-list">
         <article
           class="child-row"
-          *ngFor="let control of activeCategory.controls"
+          *ngFor="let control of getVisibleControls(activeCategory)"
           [class.is-selected]="activeControlId === control.id">
           <div class="child-info">
+            <!-- KPI area:
+                 Data comes from `getDisplayStats(control)` in TS.
+                 That method returns default KPIs or day-specific KPIs after a calendar click. -->
             <div class="child-name-row">
               <h3>{{ control.name }}</h3>
 
@@ -67,6 +106,10 @@
             </div>
           </div>
 
+          <!-- Calendar area:
+               - Month switching is handled by `shiftCalendarMonth()`.
+               - Day click drill-down is handled by `selectCalendarDay()`.
+               - Calendar cell data is built by `getCalendarDays()` in TS. -->
           <div class="calendar-card">
             <div class="calendar-head">
               <div>

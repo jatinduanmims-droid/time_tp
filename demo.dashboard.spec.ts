@@ -19,6 +19,8 @@ describe('DemoDashboardComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  // Default state:
+  // The first Trade child is selected on initial load.
   it('should initialize with the first trade control selected', () => {
     expect(component.activeControlId).toBe('incoming-requests-management');
   });
@@ -58,5 +60,12 @@ describe('DemoDashboardComponent', () => {
     component.shiftCalendarMonth(control.id, -1);
 
     expect(component.getMonthLabel(control.id)).toBe('February 2026');
+  });
+
+  it('should filter the active category by T-1 failed controls', () => {
+    component.filterCategoryByStatus('trade', 'failed');
+
+    expect(component.getActiveFilterLabel()).toBe('T-1 Failed children');
+    expect(component.getVisibleControls(component.getActiveCategory()).length).toBeGreaterThan(0);
   });
 });
