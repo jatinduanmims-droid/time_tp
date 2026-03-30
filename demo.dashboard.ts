@@ -23,6 +23,7 @@ type DashboardControl = {
   name: string;
   shortName: string;
   source: string;
+  sourceLabel: string;
   description: string;
   statusLabel: string;
   statusColor: string;
@@ -67,6 +68,7 @@ export class DemoDashboardComponent {
           name: 'Incoming Requests Management Control',
           shortName: 'Jatin-dashboard',
           source: 'EmailService.getBatchEmails()',
+          sourceLabel: 'Trade Control Feed',
           description: 'Tracks request mix, urgency, and SLA health for incoming trade-control activity.',
           statusLabel: 'Healthy',
           statusColor: 'var(--success)',
@@ -97,6 +99,7 @@ export class DemoDashboardComponent {
           name: 'Evergreen Cancellations Control',
           shortName: 'Cancellation Requests',
           source: 'EmailService.getBatchCancellations()',
+          sourceLabel: 'Cancellation Feed',
           description: 'Measures evergreen and non-evergreen cancellation demand with due-window visibility.',
           statusLabel: 'Watchlist',
           statusColor: 'var(--warn)',
@@ -127,6 +130,7 @@ export class DemoDashboardComponent {
           name: 'Documents Checking Deadline Follow up on SBLC',
           shortName: 'SBLC Follow up',
           source: 'EmailService.getBatchEmails()',
+          sourceLabel: 'Trade Control Feed',
           description: 'Uses the same current dataset as the incoming requests dashboard for now.',
           statusLabel: 'Healthy',
           statusColor: 'var(--success)',
@@ -157,6 +161,7 @@ export class DemoDashboardComponent {
           name: 'Documents Checking Deadline Follow up on L/C',
           shortName: 'L/C Follow up',
           source: 'KPI logic pending',
+          sourceLabel: 'KPI Setup Pending',
           description: 'Listed in the control map, KPI logic can be added later.',
           statusLabel: 'Coming Soon',
           statusColor: 'var(--ink-700)',
@@ -176,6 +181,7 @@ export class DemoDashboardComponent {
           name: 'Market Facility Validation',
           shortName: 'Market Facility',
           source: 'KPI logic pending',
+          sourceLabel: 'KPI Setup Pending',
           description: 'Control is kept visible, KPI wiring is still pending.',
           statusLabel: 'Coming Soon',
           statusColor: 'var(--ink-700)',
@@ -187,6 +193,7 @@ export class DemoDashboardComponent {
           name: 'Renewed Deals Validation',
           shortName: 'Renewed Deals',
           source: 'KPI logic pending',
+          sourceLabel: 'KPI Setup Pending',
           description: 'Control is kept visible, KPI wiring is still pending.',
           statusLabel: 'Coming Soon',
           statusColor: 'var(--ink-700)',
@@ -198,6 +205,7 @@ export class DemoDashboardComponent {
           name: 'Legal Entity Validation',
           shortName: 'MCA-atlas2',
           source: 'CreditControls.getMCAAtlas2Report()',
+          sourceLabel: 'Credit Recon Feed',
           description: 'Tracks recon flag buckets and mismatch-driven validation work.',
           statusLabel: 'Needs Focus',
           statusColor: 'var(--warn)',
@@ -236,6 +244,7 @@ export class DemoDashboardComponent {
           name: 'Supply Chain Financing',
           shortName: 'Invoice loan',
           source: 'CreditControls.getInvoiceLoanReport()',
+          sourceLabel: 'Supply Chain Feed',
           description: 'Shows grouped invoice-loan counts and recon performance for supply-chain financing.',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
