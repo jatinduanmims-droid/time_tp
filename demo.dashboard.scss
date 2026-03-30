@@ -293,6 +293,14 @@
   margin-bottom: 12px;
 }
 
+.details-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .details-head h2 {
   margin: 0;
   font-size: 1rem;
@@ -307,9 +315,40 @@
   white-space: nowrap;
 }
 
+.clear-filter-btn {
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink-700);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.64rem;
+  cursor: pointer;
+}
+
 .child-list {
   display: grid;
   gap: 10px;
+}
+
+.empty-state {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed #c8d4cf;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ink-700);
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.empty-state p {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--ink-500);
 }
 
 .child-row {
@@ -494,7 +533,7 @@
 .calendar-nav {
   /* Month switcher row above the calendar grid. */
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 6px;
   align-items: center;
 }
@@ -508,6 +547,12 @@
   font: inherit;
   font-size: 0.6rem;
   cursor: pointer;
+}
+
+.calendar-nav-btn.today-btn {
+  color: var(--brand);
+  border-color: rgba(14, 102, 80, 0.18);
+  background: rgba(14, 102, 80, 0.06);
 }
 
 .calendar-month {

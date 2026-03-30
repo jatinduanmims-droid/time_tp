@@ -79,14 +79,23 @@
         <div>
           <h2>{{ activeCategory.name }}</h2>
         </div>
-        <div class="details-meta">{{ getActiveFilterLabel() }}</div>
+        <div class="details-head-right">
+          <button
+            *ngIf="activeCategory.key !== 'favourite' && activeStatusFilterByCategory[activeCategory.key]"
+            type="button"
+            class="clear-filter-btn"
+            (click)="selectControl(activeCategory.key)">
+            Show All
+          </button>
+          <div class="details-meta">{{ getActiveFilterLabel() }}</div>
+        </div>
       </div>
 
       <!-- Child rows:
            Each row is one child control under the selected parent.
            To change row structure, edit this block.
            To change child row height/spacing, use `.child-row` in SCSS. -->
-      <div class="child-list">
+      <div class="child-list" *ngIf="getVisibleControls(activeCategory).length; else emptyState">
         <article
           class="child-row"
           *ngFor="let control of getVisibleControls(activeCategory)"
@@ -102,7 +111,7 @@
                 type="button"
                 class="favorite-btn"
                 [class.active]="isFavorite(control.id)"
-                (click)="toggleFavorite(control.id)">
+                (click)="$event.stopPropagation(); toggleFavorite(control.id)">
                 {{ isFavorite(control.id) ? '★' : '☆' }}
               </button>
             </div>
@@ -135,6 +144,7 @@
             <div class="calendar-nav">
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
               <div class="calendar-month">{{ getMonthLabel(control.id) }}</div>
+              <button type="button" class="calendar-nav-btn today-btn" (click)="resetCalendarToCurrentDate(control.id)">Today</button>
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, 1)">Next</button>
             </div>
 
@@ -167,6 +177,18 @@
           </div>
         </article>
       </div>
+
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <h3>No controls here yet</h3>
+          <p *ngIf="activeCategory.key === 'favourite'; else filteredEmpty">
+            Click the star on any child control to add it to Favourite.
+          </p>
+          <ng-template #filteredEmpty>
+            <p>No child controls matched the current filter. Use Show All or switch to another parent control.</p>
+          </ng-template>
+        </div>
+      </ng-template>
     </section>
   </section>
 </div>
