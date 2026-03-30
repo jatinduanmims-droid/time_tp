@@ -26,21 +26,9 @@
             <i class="category-dot"></i>
             <div>
               <h2>{{ category.name }}</h2>
-              <p class="category-note">{{ category.note }}</p>
             </div>
           </div>
           <div class="mini-pill">{{ category.controls.length }} {{ category.controls.length === 1 ? 'child' : 'children' }}</div>
-        </div>
-
-        <div class="child-chip-list">
-          <button
-            class="child-chip"
-            *ngFor="let control of category.controls"
-            type="button"
-            [class.selected]="selectedControlByCategory[category.key] === control.id"
-            (click)="$event.stopPropagation(); selectedControlByCategory[category.key] = control.id; handleControlChange(category.key)">
-            {{ control.name }}
-          </button>
         </div>
       </article>
     </aside>
@@ -49,7 +37,6 @@
       <div class="details-head">
         <div>
           <h2>{{ activeCategory.name }}</h2>
-          <p>{{ activeCategory.note }}</p>
         </div>
         <div class="details-meta">{{ activeCategory.controls.length }} active {{ activeCategory.controls.length === 1 ? 'child' : 'children' }}</div>
       </div>
@@ -61,10 +48,7 @@
           [class.is-selected]="activeControlId === control.id">
           <div class="child-info">
             <div class="child-name-row">
-              <div>
-                <h3>{{ control.name }}</h3>
-                <p>{{ control.shortName }}</p>
-              </div>
+              <h3>{{ control.name }}</h3>
 
               <div
                 class="status-pill"
@@ -75,7 +59,7 @@
             </div>
 
             <div class="stats-grid">
-              <div class="stat" *ngFor="let stat of control.stats">
+              <div class="stat" *ngFor="let stat of getDisplayStats(control)">
                 <span>{{ stat.label }}</span>
                 <strong>{{ stat.value }}</strong>
                 <small>{{ stat.note }}</small>
@@ -89,7 +73,10 @@
                 <h4>Failure Calendar</h4>
                 <small>March 2026</small>
               </div>
-              <div class="calendar-badge">{{ control.failureDays.length }} {{ control.failureDays.length === 1 ? 'failure day' : 'failure days' }}</div>
+              <div class="calendar-summary">
+                <div class="calendar-badge pass">{{ getStatusCount(control, 'passed') }} Passed</div>
+                <div class="calendar-badge fail">{{ getStatusCount(control, 'failed') }} Failed</div>
+              </div>
             </div>
 
             <div class="weekdays">
@@ -105,10 +92,14 @@
             <div class="calendar-grid">
               <div
                 class="day"
-                *ngFor="let day of getCalendarDays(control.failureDays)"
+                *ngFor="let day of getCalendarDays(control)"
                 [class.muted]="day.muted"
                 [class.fail]="day.fail"
-                [class.today]="day.today">
+                [class.passed]="day.passed"
+                [class.today]="day.today"
+                [class.clickable]="day.clickable"
+                [class.selected]="day.selected"
+                (click)="day.clickable && day.dayNumber && selectCalendarDay(control.id, day.dayNumber)">
                 {{ day.label }}
               </div>
             </div>

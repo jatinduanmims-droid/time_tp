@@ -11,18 +11,19 @@ interface ControlStat {
 interface DashboardControl {
   id: string;
   name: string;
-  shortName: string;
   statusLabel: string;
   statusColor: string;
   statusBg: string;
   stats: ControlStat[];
-  failureDays: number[];
+  calendarEntries: Array<{
+    day: number;
+    status: 'passed' | 'failed';
+  }>;
 }
 
 interface DashboardCategory {
   key: 'trade' | 'credit' | 'supply';
   name: string;
-  note: string;
   accent: string;
   controls: DashboardControl[];
 }
@@ -41,13 +42,11 @@ export class DemoDashboardComponent {
     {
       key: 'trade',
       name: 'Trade Control',
-      note: 'Incoming requests, cancellations, and document follow-up controls',
       accent: 'var(--trade)',
       controls: [
         {
           id: 'incoming-requests-management',
           name: 'Incoming Requests Management Control',
-          shortName: 'Incoming Requests',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
@@ -56,12 +55,17 @@ export class DemoDashboardComponent {
             { label: 'Open Items', value: '12', note: 'Awaiting action' },
             { label: 'Fails', value: '2', note: 'This month' }
           ],
-          failureDays: [5, 15]
+          calendarEntries: [
+            { day: 3, status: 'passed' },
+            { day: 5, status: 'failed' },
+            { day: 10, status: 'passed' },
+            { day: 15, status: 'failed' },
+            { day: 22, status: 'passed' }
+          ]
         },
         {
           id: 'evergreen-cancellations',
           name: 'Evergreen Cancellations Control',
-          shortName: 'Evergreen Cancellations',
           statusLabel: 'Watchlist',
           statusColor: 'var(--warn)',
           statusBg: 'rgba(197, 143, 25, 0.14)',
@@ -70,12 +74,17 @@ export class DemoDashboardComponent {
             { label: 'Exceptions', value: '2', note: 'Pending review' },
             { label: 'Recovery', value: '91%', note: 'Processed on time' }
           ],
-          failureDays: [7, 20]
+          calendarEntries: [
+            { day: 4, status: 'passed' },
+            { day: 7, status: 'failed' },
+            { day: 13, status: 'passed' },
+            { day: 20, status: 'failed' },
+            { day: 27, status: 'passed' }
+          ]
         },
         {
           id: 'documents-checking-sblc',
           name: 'Documents Checking Deadline Follow up on SBLC',
-          shortName: 'SBLC Follow Up',
           statusLabel: 'Needs Focus',
           statusColor: '#a93e3e',
           statusBg: 'rgba(217, 108, 108, 0.15)',
@@ -84,12 +93,16 @@ export class DemoDashboardComponent {
             { label: 'Escalations', value: '4', note: 'Supervisor queue' },
             { label: 'Pass Rate', value: '84%', note: 'Below target' }
           ],
-          failureDays: [11, 23]
+          calendarEntries: [
+            { day: 2, status: 'passed' },
+            { day: 11, status: 'failed' },
+            { day: 17, status: 'passed' },
+            { day: 23, status: 'failed' }
+          ]
         },
         {
           id: 'documents-checking-lc',
           name: 'Documents Checking Deadline Follow up on L/C',
-          shortName: 'L/C Follow Up',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
@@ -98,20 +111,23 @@ export class DemoDashboardComponent {
             { label: 'Open Cases', value: '9', note: 'Need follow-up' },
             { label: 'Failures', value: '1', note: 'Month to date' }
           ],
-          failureDays: [18]
+          calendarEntries: [
+            { day: 6, status: 'passed' },
+            { day: 12, status: 'passed' },
+            { day: 18, status: 'failed' },
+            { day: 26, status: 'passed' }
+          ]
         }
       ]
     },
     {
       key: 'credit',
       name: 'Credit Control',
-      note: 'Market, renewed deals, and legal entity validations',
       accent: 'var(--credit)',
       controls: [
         {
           id: 'market-facility-validation',
           name: 'Market Facility Validation',
-          shortName: 'Market Facility',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
@@ -120,12 +136,15 @@ export class DemoDashboardComponent {
             { label: 'Pending', value: '5', note: 'Need review' },
             { label: 'Failures', value: '1', note: 'Month to date' }
           ],
-          failureDays: [9]
+          calendarEntries: [
+            { day: 1, status: 'passed' },
+            { day: 9, status: 'failed' },
+            { day: 18, status: 'passed' }
+          ]
         },
         {
           id: 'renewed-deals-validation',
           name: 'Renewed Deals Validation',
-          shortName: 'Renewed Deals',
           statusLabel: 'Watchlist',
           statusColor: 'var(--warn)',
           statusBg: 'rgba(197, 143, 25, 0.14)',
@@ -134,12 +153,15 @@ export class DemoDashboardComponent {
             { label: 'Pending', value: '3', note: 'Need maker check' },
             { label: 'Failures', value: '2', note: 'Month to date' }
           ],
-          failureDays: [6, 21]
+          calendarEntries: [
+            { day: 6, status: 'failed' },
+            { day: 12, status: 'passed' },
+            { day: 21, status: 'failed' }
+          ]
         },
         {
           id: 'legal-entity-validation',
           name: 'Legal Entity Validation',
-          shortName: 'Legal Entity',
           statusLabel: 'Needs Focus',
           statusColor: '#a93e3e',
           statusBg: 'rgba(217, 108, 108, 0.15)',
@@ -148,20 +170,23 @@ export class DemoDashboardComponent {
             { label: 'Mismatch', value: '30', note: 'Require review' },
             { label: 'Empty', value: '11', note: 'Missing records' }
           ],
-          failureDays: [4, 16, 24]
+          calendarEntries: [
+            { day: 4, status: 'failed' },
+            { day: 16, status: 'failed' },
+            { day: 19, status: 'passed' },
+            { day: 24, status: 'failed' }
+          ]
         }
       ]
     },
     {
       key: 'supply',
       name: 'Supply Chain Control',
-      note: 'Supply-chain financing monitoring',
       accent: 'var(--supply)',
       controls: [
         {
           id: 'supply-chain-financing',
           name: 'Supply Chain Financing',
-          shortName: 'Supply Chain Financing',
           statusLabel: 'Stable',
           statusColor: 'var(--success)',
           statusBg: 'rgba(32, 116, 80, 0.12)',
@@ -170,7 +195,11 @@ export class DemoDashboardComponent {
             { label: 'Clients', value: '19', note: 'Active accounts' },
             { label: 'Failures', value: '2', note: 'Month to date' }
           ],
-          failureDays: [8, 28]
+          calendarEntries: [
+            { day: 8, status: 'failed' },
+            { day: 14, status: 'passed' },
+            { day: 28, status: 'failed' }
+          ]
         }
       ]
     }
@@ -182,6 +211,7 @@ export class DemoDashboardComponent {
 
   activeCategoryKey: DashboardCategory['key'] = 'trade';
   activeControlId = this.selectedControlByCategory['trade'];
+  selectedCalendarDayByControl: Record<string, number | null> = {};
 
   selectControl(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
@@ -223,25 +253,79 @@ export class DemoDashboardComponent {
     return Math.max(...points.map((point) => point.value), 1);
   }
 
-  getCalendarDays(failureDays: number[]): Array<{ label: string; muted: boolean; fail: boolean; today: boolean }> {
+  selectCalendarDay(controlId: string, day: number): void {
+    this.selectedCalendarDayByControl[controlId] =
+      this.selectedCalendarDayByControl[controlId] === day ? null : day;
+  }
+
+  getDisplayStats(control: DashboardControl): ControlStat[] {
+    const selectedDay = this.selectedCalendarDayByControl[control.id];
+
+    if (!selectedDay) {
+      return control.stats;
+    }
+
+    const selectedEntry = control.calendarEntries.find((entry) => entry.day === selectedDay);
+
+    if (!selectedEntry) {
+      return control.stats;
+    }
+
+    const outcome = selectedEntry.status === 'failed' ? 'Failed' : 'Passed';
+    const outcomeDetail = selectedEntry.status === 'failed' ? 'Requires review' : 'Processed successfully';
+    const impactValue = selectedEntry.status === 'failed' ? `${(selectedDay % 3) + 1} cases` : `${(selectedDay % 4) + 2} items`;
+    const impactNote = selectedEntry.status === 'failed' ? 'Flagged on selected day' : 'Cleared on selected day';
+
+    return [
+      { label: 'Selected Day', value: `${selectedDay} Mar`, note: 'Calendar drill-down' },
+      { label: 'Status', value: outcome, note: outcomeDetail },
+      { label: 'Impact', value: impactValue, note: impactNote }
+    ];
+  }
+
+  getCalendarDays(control: DashboardControl): Array<{
+    label: string;
+    muted: boolean;
+    fail: boolean;
+    passed: boolean;
+    today: boolean;
+    clickable: boolean;
+    selected: boolean;
+    dayNumber: number | null;
+  }> {
     const totalDays = 30;
     const startOffset = 5;
+    const selectedDay = this.selectedCalendarDayByControl[control.id];
     const cells = Array.from({ length: startOffset }, () => ({
       label: '',
       muted: true,
       fail: false,
-      today: false
+      passed: false,
+      today: false,
+      clickable: false,
+      selected: false,
+      dayNumber: null
     }));
 
     for (let day = 1; day <= totalDays; day += 1) {
+      const entry = control.calendarEntries.find((calendarEntry) => calendarEntry.day === day);
+
       cells.push({
         label: String(day),
         muted: false,
-        fail: failureDays.includes(day),
-        today: day === 11
+        fail: entry?.status === 'failed',
+        passed: entry?.status === 'passed',
+        today: day === 11,
+        clickable: Boolean(entry),
+        selected: selectedDay === day,
+        dayNumber: day
       });
     }
 
     return cells;
+  }
+
+  getStatusCount(control: DashboardControl, status: 'passed' | 'failed'): number {
+    return control.calendarEntries.filter((entry) => entry.status === status).length;
   }
 }
