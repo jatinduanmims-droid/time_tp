@@ -27,7 +27,7 @@ interface DashboardControl {
 }
 
 interface DashboardCategory {
-  key: 'trade' | 'credit' | 'supply';
+  key: 'favourite' | 'trade' | 'credit' | 'supply';
   name: string;
   accent: string;
   controls: DashboardControl[];
@@ -56,6 +56,12 @@ export class DemoDashboardComponent {
   // All category / child / KPI data is currently mocked locally in this file.
   // When real backend data becomes available, this is the section to replace with API data mapping.
   readonly categories: DashboardCategory[] = [
+    {
+      key: 'favourite',
+      name: 'Favourite',
+      accent: 'var(--favourite)',
+      controls: []
+    },
     {
       key: 'trade',
       name: 'Trade Control',
@@ -235,6 +241,9 @@ export class DemoDashboardComponent {
   // Stores whether the active parent is filtered to show only T-1 passed/failed children.
   activeStatusFilterByCategory: Record<string, 'passed' | 'failed' | null> = {};
 
+  // Saved favourites shown under the Favourite parent card.
+  favoriteControlIds = new Set<string>(['incoming-requests-management']);
+
   // Stores the clicked calendar day per child so KPIs can drill into that selected date.
   selectedCalendarDayByControl: Record<string, number | null> = {};
 
@@ -251,7 +260,7 @@ export class DemoDashboardComponent {
   selectControl(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
     this.activeStatusFilterByCategory[categoryKey] = null;
-    this.activeControlId = this.selectedControlByCategory[categoryKey];
+    this.activeControlId = this.getVisibleControls(this.getActiveCategory())[0]?.id ?? this.selectedControlByCategory[categoryKey];
   }
 
   // Called when user clicks T-1 Failed / T-1 Passed under a parent card.
@@ -260,8 +269,21 @@ export class DemoDashboardComponent {
     this.activeCategoryKey = categoryKey;
     this.activeStatusFilterByCategory[categoryKey] = status;
 
+    const snapshotMonthKey = this.getMonthKey(this.snapshotDate);
+    const tMinusOneDay = this.getTMinusOneDate().getDate();
+    const category = this.categories.find((item) => item.key === categoryKey) ?? this.categories[0];
+
+    // Map the T-1 parent filter to each child calendar so the UI and KPI drill-down
+    // both point to the same day/context the moment the filter is clicked.
+    category.controls.forEach((control) => {
+      this.viewedMonthByControl[control.id] = snapshotMonthKey;
+
+      this.selectedCalendarDayByControl[control.id] =
+        this.getTMinusOneStatus(control) === status ? tMinusOneDay : null;
+    });
+
     const visibleControls = this.getVisibleControls(
-      this.categories.find((category) => category.key === categoryKey) ?? this.categories[0]
+      category
     );
 
     this.activeControlId = visibleControls[0]?.id ?? this.selectedControlByCategory[categoryKey];
@@ -270,6 +292,23 @@ export class DemoDashboardComponent {
   handleControlChange(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
     this.activeControlId = this.selectedControlByCategory[categoryKey];
+  }
+
+  // Toggles a child inside/outside the Favourite parent section.
+  toggleFavorite(controlId: string): void {
+    if (this.favoriteControlIds.has(controlId)) {
+      this.favoriteControlIds.delete(controlId);
+    } else {
+      this.favoriteControlIds.add(controlId);
+    }
+
+    if (this.activeCategoryKey === 'favourite' && !this.favoriteControlIds.has(controlId)) {
+      this.activeControlId = this.getVisibleControls(this.getActiveCategory())[0]?.id ?? '';
+    }
+  }
+
+  isFavorite(controlId: string): boolean {
+    return this.favoriteControlIds.has(controlId);
   }
 
   // Returns the selected child for a parent card.
@@ -284,9 +323,19 @@ export class DemoDashboardComponent {
     return this.categories.find((category) => category.key === this.activeCategoryKey) ?? this.categories[0];
   }
 
+  getAllControls(): DashboardControl[] {
+    return this.categories
+      .filter((category) => category.key !== 'favourite')
+      .flatMap((category) => category.controls);
+  }
+
   // Main filter used by the right panel list.
   // If no T-1 filter is active, all children of the selected parent are shown.
   getVisibleControls(category: DashboardCategory): DashboardControl[] {
+    if (category.key === 'favourite') {
+      return this.getAllControls().filter((control) => this.favoriteControlIds.has(control.id));
+    }
+
     const statusFilter = this.activeStatusFilterByCategory[category.key];
 
     if (!statusFilter) {
@@ -297,6 +346,10 @@ export class DemoDashboardComponent {
   }
 
   getActiveFilterLabel(): string {
+    if (this.activeCategoryKey === 'favourite') {
+      return 'Saved favourites';
+    }
+
     const statusFilter = this.activeStatusFilterByCategory[this.activeCategoryKey];
 
     if (!statusFilter) {
@@ -333,6 +386,13 @@ export class DemoDashboardComponent {
   selectCalendarDay(controlId: string, day: number): void {
     this.selectedCalendarDayByControl[controlId] =
       this.selectedCalendarDayByControl[controlId] === day ? null : day;
+  }
+
+  // Double-clicking a calendar day resets the child back to the snapshot/current date context.
+  // It also brings the visible calendar month back to the snapshot month if needed.
+  resetCalendarToCurrentDate(controlId: string): void {
+    this.viewedMonthByControl[controlId] = this.getMonthKey(this.snapshotDate);
+    this.selectedCalendarDayByControl[controlId] = this.snapshotDate.getDate();
   }
 
   // Moves the child calendar backward/forward by month.
@@ -390,6 +450,7 @@ export class DemoDashboardComponent {
     passed: boolean;
     today: boolean;
     clickable: boolean;
+    future: boolean;
     selected: boolean;
     dayNumber: number | null;
   }> {
@@ -404,12 +465,16 @@ export class DemoDashboardComponent {
       passed: false,
       today: false,
       clickable: false,
+      future: false,
       selected: false,
       dayNumber: null
     }));
 
     for (let day = 1; day <= totalDays; day += 1) {
-      const status = this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
+      const future = this.isFutureDate(viewedMonth, day);
+      const status = future
+        ? null
+        : this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
 
       cells.push({
         label: String(day),
@@ -417,7 +482,8 @@ export class DemoDashboardComponent {
         fail: status === 'failed',
         passed: status === 'passed',
         today: this.isToday(viewedMonth, day),
-        clickable: true,
+        clickable: !future,
+        future,
         selected: selectedDay === day,
         dayNumber: day
       });
@@ -433,6 +499,10 @@ export class DemoDashboardComponent {
     let count = 0;
 
     for (let day = 1; day <= totalDays; day += 1) {
+      if (this.isFutureDate(viewedMonth, day)) {
+        continue;
+      }
+
       if (this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day) === status) {
         count += 1;
       }
@@ -443,6 +513,10 @@ export class DemoDashboardComponent {
 
   // T-1 summary shown under each parent card uses this count.
   getTMinusOneCount(category: DashboardCategory, status: 'passed' | 'failed'): number {
+    if (category.key === 'favourite') {
+      return this.getVisibleControls(category).length;
+    }
+
     return category.controls.filter((control) => this.getTMinusOneStatus(control) === status).length;
   }
 
@@ -476,16 +550,31 @@ export class DemoDashboardComponent {
 
   // T-1 badges under each parent card are derived from the day before `snapshotDate`.
   private getTMinusOneStatus(control: DashboardControl): 'passed' | 'failed' {
+    const tMinusOne = this.getTMinusOneDate();
+
+    return this.getDayStatus(control, tMinusOne.getFullYear(), tMinusOne.getMonth(), tMinusOne.getDate());
+  }
+
+  private getTMinusOneDate(): Date {
     const tMinusOne = new Date(this.snapshotDate);
     tMinusOne.setDate(this.snapshotDate.getDate() - 1);
 
-    return this.getDayStatus(control, tMinusOne.getFullYear(), tMinusOne.getMonth(), tMinusOne.getDate());
+    return tMinusOne;
   }
 
   // Highlights "today" in the demo calendar.
   // Right now this is fixed to the snapshot month for demo purposes.
   private isToday(viewedMonth: Date, day: number): boolean {
-    return viewedMonth.getFullYear() === 2026 && viewedMonth.getMonth() === 2 && day === 11;
+    return viewedMonth.getFullYear() === this.snapshotDate.getFullYear()
+      && viewedMonth.getMonth() === this.snapshotDate.getMonth()
+      && day === this.snapshotDate.getDate();
+  }
+
+  // Future dates should stay neutral/unavailable because the day has not happened yet.
+  private isFutureDate(viewedMonth: Date, day: number): boolean {
+    const candidate = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
+
+    return candidate.getTime() > this.snapshotDate.getTime();
   }
 
   // Small deterministic hash used by `getDayStatus()` to make demo month data repeatable.

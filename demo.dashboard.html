@@ -37,10 +37,10 @@
               <h2>{{ category.name }}</h2>
             </div>
           </div>
-          <div class="mini-pill">{{ category.controls.length }} {{ category.controls.length === 1 ? 'child' : 'children' }}</div>
+          <div class="mini-pill">{{ getVisibleControls(category).length }} {{ getVisibleControls(category).length === 1 ? 'child' : 'children' }}</div>
         </div>
 
-        <div class="tminus-grid">
+        <div class="tminus-grid" *ngIf="category.key !== 'favourite'; else favouriteSummary">
           <button
             type="button"
             class="tminus-pill failed"
@@ -59,6 +59,15 @@
             <strong>{{ getTMinusOneCount(category, 'passed') }}</strong>
           </button>
         </div>
+
+        <ng-template #favouriteSummary>
+          <div class="tminus-grid favourite-grid">
+            <div class="tminus-pill favourite-summary">
+              <span>Saved</span>
+              <strong>{{ getVisibleControls(category).length }}</strong>
+            </div>
+          </div>
+        </ng-template>
       </article>
     </aside>
 
@@ -89,12 +98,13 @@
             <div class="child-name-row">
               <h3>{{ control.name }}</h3>
 
-              <div
-                class="status-pill"
-                [style.--status-bg]="control.statusBg"
-                [style.--status-color]="control.statusColor">
-                {{ control.statusLabel }}
-              </div>
+              <button
+                type="button"
+                class="favorite-btn"
+                [class.active]="isFavorite(control.id)"
+                (click)="toggleFavorite(control.id)">
+                {{ isFavorite(control.id) ? '★' : '☆' }}
+              </button>
             </div>
 
             <div class="stats-grid">
@@ -145,10 +155,12 @@
                 [class.muted]="day.muted"
                 [class.fail]="day.fail"
                 [class.passed]="day.passed"
+                [class.future]="day.future"
                 [class.today]="day.today"
                 [class.clickable]="day.clickable"
                 [class.selected]="day.selected"
-                (click)="day.clickable && day.dayNumber && selectCalendarDay(control.id, day.dayNumber)">
+                (click)="day.clickable && day.dayNumber && selectCalendarDay(control.id, day.dayNumber)"
+                (dblclick)="day.dayNumber && resetCalendarToCurrentDate(control.id)">
                 {{ day.label }}
               </div>
             </div>
