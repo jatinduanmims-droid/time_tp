@@ -4,7 +4,9 @@
 
   <!-- Top header:
        - Title/subtitle text is controlled here.
-       - Header height/spacing is mostly controlled from `.topbar` in SCSS. -->
+       - Header height/spacing is mostly controlled from `.topbar` in SCSS.
+       - To remove the subtitle line, delete the `<p>...</p>` line inside this section.
+       - To remove the snapshot pill, delete the `<div class="topbar-meta">...</div>` block. -->
   <section class="topbar">
     <div>
       <h1>Unified Controls Dashboard</h1>
@@ -19,10 +21,14 @@
   <!-- Main two-column workspace:
        - Left = parent controls
        - Right = active category children
-       - Overall column widths are controlled from `.workspace` in SCSS. -->
+       - Overall column widths are controlled from `.workspace` in SCSS.
+       - To remove the whole left panel, delete the `<aside class="category-stack">...</aside>` block.
+       - To remove the whole right panel, delete the `<section class="details-shell">...</section>` block. -->
   <section class="workspace">
     <!-- Parent control cards.
-         If you want to change what appears under each parent control, edit this block. -->
+         If you want to change what appears under each parent control, edit this block.
+         To remove the Favourite/Trade/Credit/Supply parent cards completely, delete this whole `<aside>...</aside>` block.
+         To remove only the child/control count pill, delete the `<div class="mini-pill">...</div>` line. -->
     <aside class="category-stack">
       <article
         class="category-card"
@@ -40,12 +46,16 @@
           <div class="mini-pill">{{ getVisibleControls(category).length }} {{ getVisibleControls(category).length === 1 ? 'child' : 'children' }}</div>
         </div>
 
+        <!-- Yesterday filter pills under each parent card.
+             To remove these filters, delete this whole `<div class="tminus-grid"...>...</div>` block
+             and also delete the `#favouriteSummary` template below it. -->
         <div class="tminus-grid" *ngIf="category.key !== 'favourite'; else favouriteSummary">
           <button
             type="button"
             class="tminus-pill failed"
             [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'failed'"
             (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'failed')">
+            <!-- To rename or remove the failed-yesterday label, edit/delete the `<span>...</span>` line below. -->
             <span>T-1 Failed</span>
             <strong>{{ getTMinusOneCount(category, 'failed') }}</strong>
           </button>
@@ -55,6 +65,7 @@
             class="tminus-pill passed"
             [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'passed'"
             (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'passed')">
+            <!-- To rename or remove the passed-yesterday label, edit/delete the `<span>...</span>` line below. -->
             <span>T-1 Passed</span>
             <strong>{{ getTMinusOneCount(category, 'passed') }}</strong>
           </button>
@@ -63,7 +74,8 @@
         <ng-template #favouriteSummary>
           <!-- Favourite summary:
                This block renders the saved favourites count in the left-side Favourite card.
-               If you want Favourite to show a different summary layout later, edit this block. -->
+               If you want Favourite to show a different summary layout later, edit this block.
+               To remove the Favourite summary pill, delete this whole template block. -->
           <div class="tminus-grid favourite-grid">
             <div class="tminus-pill favourite-summary">
               <span>Saved</span>
@@ -76,15 +88,18 @@
 
     <!-- Right-side details panel.
          Child rows shown here come from `getVisibleControls(activeCategory)` in the TS file,
-         which means this area reacts to parent selection and T-1 pass/fail filters. -->
+         which means this area reacts to parent selection and T-1 pass/fail filters.
+         To remove the entire controls area on the right, delete this whole `<section class="details-shell">...</section>` block. -->
     <section class="details-shell" *ngIf="getActiveCategory() as activeCategory">
       <div class="details-head">
         <div>
+          <!-- To remove the right-panel heading, delete the `<h2>...</h2>` line below. -->
           <h2>{{ activeCategory.name }}</h2>
         </div>
         <div class="details-head-right">
           <!-- "Show All" appears only when a pass/fail filter is active for the current parent.
-               If you want a permanent clear/reset button, change the `*ngIf` condition here. -->
+               If you want a permanent clear/reset button, change the `*ngIf` condition here.
+               To remove this button completely, delete the whole `<button ...>Show All</button>` block. -->
           <button
             *ngIf="activeCategory.key !== 'favourite' && activeStatusFilterByCategory[activeCategory.key]"
             type="button"
@@ -92,6 +107,7 @@
             (click)="selectControl(activeCategory.key)">
             Show All
           </button>
+          <!-- To remove the filter-status pill on the right, delete the `<div class="details-meta">...</div>` line below. -->
           <div class="details-meta">{{ getActiveFilterLabel() }}</div>
         </div>
       </div>
@@ -99,7 +115,8 @@
       <!-- Child rows:
            Each row is one child control under the selected parent.
            To change row structure, edit this block.
-           To change child row height/spacing, use `.child-row` in SCSS. -->
+           To change child row height/spacing, use `.child-row` in SCSS.
+           To remove the whole repeating control card component, delete the `<article class="child-row"...>...</article>` block below. -->
       <div class="child-list" *ngIf="getVisibleControls(activeCategory).length; else emptyState">
         <article
           class="child-row"
@@ -108,12 +125,15 @@
           <div class="child-info">
             <!-- KPI area:
                  Data comes from `getDisplayStats(control)` in TS.
-                 That method returns default KPIs or day-specific KPIs after a calendar click. -->
+                 That method returns default KPIs or day-specific KPIs after a calendar click.
+                 To remove the whole KPI area, delete this entire `<div class="child-info">...</div>` block. -->
             <div class="child-name-row">
+              <!-- To remove the control title, delete the `<h3>...</h3>` line below. -->
               <h3>{{ control.name }}</h3>
 
               <!-- Favourite star:
-                   This button adds/removes the control from the Favourite parent section. -->
+                   This button adds/removes the control from the Favourite parent section.
+                   To remove the star/favourite action, delete this whole `<button ...>...</button>` block. -->
               <button
                 type="button"
                 class="favorite-btn"
@@ -123,6 +143,9 @@
               </button>
             </div>
 
+            <!-- KPI cards:
+                 To remove the KPI cards completely, delete this whole `<div class="stats-grid">...</div>` block.
+                 To remove only one label/value/note line, edit the markup inside this block or adjust `getDisplayStats()` in TS. -->
             <div class="stats-grid">
               <div class="stat" *ngFor="let stat of getDisplayStats(control)">
                 <span>{{ stat.label }}</span>
@@ -135,13 +158,17 @@
           <!-- Calendar area:
                - Month switching is handled by `shiftCalendarMonth()`.
                - Day click drill-down is handled by `selectCalendarDay()`.
-               - Calendar cell data is built by `getCalendarDays()` in TS. -->
+               - Calendar cell data is built by `getCalendarDays()` in TS.
+               - To remove the whole calendar component, delete this entire `<div class="calendar-card">...</div>` block. -->
           <div class="calendar-card">
             <div class="calendar-head">
               <div>
+                <!-- To remove the calendar title, delete the `<h4>...</h4>` line below. -->
                 <h4>Status Calendar</h4>
+                <!-- To remove the helper subtitle, delete the `<small>...</small>` line below. -->
                 <small>Passed and failed daily status</small>
               </div>
+              <!-- To remove the Passed/Failed summary badges, delete this whole `<div class="calendar-summary">...</div>` block. -->
               <div class="calendar-summary">
                 <div class="calendar-badge pass">{{ getStatusCount(control, 'passed') }} Passed</div>
                 <div class="calendar-badge fail">{{ getStatusCount(control, 'failed') }} Failed</div>
@@ -151,13 +178,17 @@
             <div class="calendar-nav">
               <!-- Calendar navigation:
                    Previous/Next changes month view.
-                   Today resets to the demo snapshot date. -->
+                   Today resets to the demo snapshot date.
+                   To remove any one of these buttons, delete that button line directly. -->
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
+              <!-- To remove the month label, delete the `<div class="calendar-month">...</div>` line below. -->
               <div class="calendar-month">{{ getMonthLabel(control.id) }}</div>
               <button type="button" class="calendar-nav-btn today-btn" (click)="resetCalendarToCurrentDate(control.id)">Today</button>
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, 1)">Next</button>
             </div>
 
+            <!-- Weekday header:
+                 To remove the Mon/Tue/Wed row, delete this whole `<div class="weekdays">...</div>` block. -->
             <div class="weekdays">
               <span>Mon</span>
               <span>Tue</span>
@@ -168,6 +199,9 @@
               <span>Sun</span>
             </div>
 
+            <!-- Calendar date grid:
+                 To remove the clickable dates completely, delete this whole `<div class="calendar-grid">...</div>` block.
+                 To change click/double-click behavior, edit the `(click)` / `(dblclick)` bindings below. -->
             <div class="calendar-grid">
               <div
                 class="day"
@@ -191,7 +225,8 @@
       <ng-template #emptyState>
         <!-- Empty state:
              Favourite has its own message.
-             Filtered categories show a different reset hint. -->
+             Filtered categories show a different reset hint.
+             To remove empty-state messaging completely, delete this whole `<ng-template #emptyState>...</ng-template>` block. -->
         <div class="empty-state">
           <h3>No controls here yet</h3>
           <p *ngIf="activeCategory.key === 'favourite'; else filteredEmpty">

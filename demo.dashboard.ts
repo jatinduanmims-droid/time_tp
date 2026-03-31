@@ -2,17 +2,26 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-// KPI cards in the child rows render from this shape.
-// If you want different KPI labels/values/notes, update the `stats` arrays below
-// or adjust `getDisplayStats()` for calendar-driven drill-down behavior.
+// KPI cards in the control rows render from this shape.
+// HOW TO EDIT KPI CARDS:
+// - To rename a KPI label in the UI, change `label`
+// - To change the number shown, change `value`
+// - To change the helper text under the number, change `note`
+// - To add one more KPI card, add another object to the `stats` array for that control
+// - If clicked calendar days should change the KPI cards, edit `getDisplayStats()`
 interface ControlStat {
   label: string;
   value: string;
   note: string;
 }
 
-// Each child control shown on the right panel is driven from this local demo model.
-// Data is currently mocked in this file itself; there is no API/service call yet.
+// Each control shown on the right panel is driven from this local demo model.
+// DATA SOURCE NOTE:
+// - Data is currently mocked in this file itself; there is no API/service call yet.
+// - To map a control from another `.ts` file, keep the control id here and then:
+//   1. create a helper function that returns KPIs in plain object form
+//   2. call that helper inside `getDisplayStats()`
+//   3. call that helper inside `getDayStatus()` if pass/fail should depend on those KPIs
 interface DashboardControl {
   id: string;
   name: string;
@@ -53,8 +62,14 @@ export class DemoDashboardComponent {
   private readonly defaultCalendarMonth = new Date(2026, 2, 1);
 
   // DEMO DATA SOURCE:
-  // All category / child / KPI data is currently mocked locally in this file.
-  // When real backend data becomes available, this is the section to replace with API data mapping.
+  // All category / control / KPI data is currently mocked locally in this file.
+  // HOW TO ADD A NEW CONTROL:
+  // - Add a new object inside the correct category's `controls` array
+  // - Give it a unique `id`
+  // - Add default `stats` for the normal non-selected state
+  // - If it needs a special KPI source, also update `getDisplayStats()` and `getDayStatus()`
+  // HOW TO ADD KPI DATA FROM ANOTHER `.ts` FILE:
+  // - Use Incoming Requests or Supply Chain below as the pattern to follow
   readonly categories: DashboardCategory[] = [
     {
       key: 'favourite',
@@ -265,7 +280,10 @@ export class DemoDashboardComponent {
   }
 
   // Called when user clicks T-1 Failed / T-1 Passed under a parent card.
-  // It filters the right-side child list to only the matching children for that parent.
+  // It filters the right-side control list to only the matching controls for that parent.
+  // HOW TO EDIT:
+  // - To change what "yesterday" means, edit `getTMinusOneDate()`
+  // - To stop syncing the calendar selection when the filter is clicked, edit this function
   filterCategoryByStatus(categoryKey: DashboardCategory['key'], status: 'passed' | 'failed'): void {
     this.activeCategoryKey = categoryKey;
     this.activeStatusFilterByCategory[categoryKey] = status;
@@ -295,7 +313,7 @@ export class DemoDashboardComponent {
     this.activeControlId = this.selectedControlByCategory[categoryKey];
   }
 
-  // Toggles a child inside/outside the Favourite parent section.
+  // Toggles a control inside/outside the Favourite parent section.
   // This is the main function to update if favourite behavior changes later
   // (for example: persisting favourites to local storage or backend).
   toggleFavorite(controlId: string): void {
@@ -333,7 +351,10 @@ export class DemoDashboardComponent {
   }
 
   // Main filter used by the right panel list.
-  // If no T-1 filter is active, all children of the selected parent are shown.
+  // If no T-1 filter is active, all controls of the selected parent are shown.
+  // HOW TO EDIT:
+  // - To change Favourite behavior, edit the `category.key === 'favourite'` block
+  // - To change filter logic, edit the final `return` statement in this function
   getVisibleControls(category: DashboardCategory): DashboardControl[] {
     // Favourite is a virtual parent.
     // It does not own its own dataset; it reuses controls saved from the real categories.
@@ -424,8 +445,15 @@ export class DemoDashboardComponent {
   }
 
   // KPI DRILL-DOWN:
-  // - If no calendar day is selected, show the default child KPI cards from `control.stats`.
-  // - If a day is selected, replace those cards with day-specific summary information.
+  // - If no calendar day is selected, show the default control KPI cards from `control.stats`
+  // - If a day is selected, replace those cards with day-specific summary information
+  // HOW TO ADD KPI MAPPING FROM ANOTHER `.ts` FILE:
+  // - Add a new `if (control.id === 'your-control-id') { ... }` block in this function
+  // - Inside that block, call a helper function that returns the KPI fields you need
+  // - Return an array of `ControlStat` objects for the cards you want to show
+  // CURRENT EXAMPLES:
+  // - `incoming-requests-management` maps from Jatin_dashboard-style KPI fields
+  // - `supply-chain-financing` maps from invoice-loan.ts style KPI fields
   getDisplayStats(control: DashboardControl): ControlStat[] {
     const selectedDay = this.selectedCalendarDayByControl[control.id];
 
@@ -438,7 +466,9 @@ export class DemoDashboardComponent {
     if (control.id === 'incoming-requests-management') {
       // ORIGINAL-FILE MAPPING:
       // Incoming Requests Management Control is mapped to Jatin_dashboard-style KPI fields.
-      // If you want to change which KPIs appear for failed/passed days, edit the returned cards here.
+      // HOW TO EDIT:
+      // - To change source values, edit `getIncomingRequestsJatinKpis()`
+      // - To change which KPI cards appear for failed/passed days, edit the returned arrays here
       const jatinKpis = this.getIncomingRequestsJatinKpis(
         viewedMonth.getFullYear(),
         viewedMonth.getMonth(),
@@ -466,7 +496,9 @@ export class DemoDashboardComponent {
     if (control.id === 'supply-chain-financing') {
       // ORIGINAL-FILE MAPPING:
       // Supply Chain Financing is mapped to invoice-loan.ts style KPI fields.
-      // If you want to change which KPI cards show for failed/passed days, edit this block.
+      // HOW TO EDIT:
+      // - To change source values, edit `getSupplyChainInvoiceLoanKpis()`
+      // - To change which KPI cards show for failed/passed days, edit this block
       const invoiceLoanKpis = this.getSupplyChainInvoiceLoanKpis(
         viewedMonth.getFullYear(),
         viewedMonth.getMonth(),
@@ -509,6 +541,9 @@ export class DemoDashboardComponent {
   // Builds the full visible month grid.
   // Every day is intentionally given a Passed/Failed status in the current demo,
   // so the calendar does not show plain neutral dates inside the active month.
+  // HOW TO EDIT:
+  // - To make more days neutral, edit `getDayStatus()` and/or `isFutureDate()`
+  // - To change which day gets selected in the UI, edit `selectedCalendarDayByControl`
   getCalendarDays(control: DashboardControl): Array<{
     label: string;
     muted: boolean;
@@ -559,9 +594,10 @@ export class DemoDashboardComponent {
   }
 
   // Summary badges at the top of the calendar use this count for the currently viewed month.
+  // HOW TO EDIT:
+  // - To show all-time counts instead of visible-month counts, change this function
+  // - To show selected-range counts, apply a different date filter here
   getStatusCount(control: DashboardControl, status: 'passed' | 'failed'): number {
-    // Calendar badges ("Passed" / "Failed") use this count for the visible month only.
-    // If you later want all-time counts or selected-range counts, change this function.
     const viewedMonth = this.getViewedMonth(control.id);
     const totalDays = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 0).getDate();
     let count = 0;
@@ -602,13 +638,18 @@ export class DemoDashboardComponent {
   }
 
   // DEMO STATUS GENERATOR:
-  // For now, pass/fail per day is generated deterministically from the child id + date.
+  // For now, pass/fail per day is generated deterministically from the control id + date.
   // This makes month navigation work across older/newer months without requiring backend data yet.
+  // HOW TO ADD PASS/FAIL LOGIC FROM ANOTHER `.ts` FILE:
+  // - Add a new `if (control.id === 'your-control-id')` block near the top
+  // - Call a helper function that returns the KPI values you need
+  // - Return `'passed'` or `'failed'` based on your business rule
   // Replace this function with real historical status data when API data is available.
   private getDayStatus(control: DashboardControl, year: number, monthIndex: number, day: number): 'passed' | 'failed' {
     if (control.id === 'incoming-requests-management') {
       // Jatin-dashboard mapping rule:
       // Anything below 100% SLA Health is treated as failed.
+      // To change that business rule later, edit the return condition below.
       const jatinKpis = this.getIncomingRequestsJatinKpis(year, monthIndex, day);
       return jatinKpis.slaPercentage === 100 ? 'passed' : 'failed';
     }
@@ -616,6 +657,7 @@ export class DemoDashboardComponent {
     if (control.id === 'supply-chain-financing') {
       // Invoice-loan mapping rule:
       // Anything below 100% Recon % is treated as failed.
+      // To change that business rule later, edit the return condition below.
       const invoiceLoanKpis = this.getSupplyChainInvoiceLoanKpis(year, monthIndex, day);
       return invoiceLoanKpis.reconPercentage === 100 ? 'passed' : 'failed';
     }
@@ -668,6 +710,10 @@ export class DemoDashboardComponent {
   // The rule is:
   // - SLA Health (`slaPercentage`) = 100 -> passed
   // - SLA Health (`slaPercentage`) < 100 -> failed
+  // HOW TO REUSE THIS PATTERN:
+  // - Create a helper like this for your other `.ts` file
+  // - Return KPI values in plain object form
+  // - Reuse that helper in both `getDisplayStats()` and `getDayStatus()`
   private getIncomingRequestsJatinKpis(year: number, monthIndex: number, day: number): {
     totalToday: number;
     urgentToday: number;
@@ -677,6 +723,7 @@ export class DemoDashboardComponent {
   } {
     // This is demo seed data for the original dashboard.
     // Replace these values with real Jatin_dashboard service data when API integration is ready.
+    // To manually change a specific day's KPI result, edit/add a date in `presetByDate` below.
     const presetByDate: Record<string, { totalToday: number; urgentToday: number; slaPercentage: number }> = {
       '2026-03-26': { totalToday: 22, urgentToday: 2, slaPercentage: 100 },
       '2026-03-27': { totalToday: 18, urgentToday: 1, slaPercentage: 100 },
@@ -707,6 +754,9 @@ export class DemoDashboardComponent {
   // The rule is:
   // - Recon % (`reconPercentage`) = 100 -> passed
   // - Recon % (`reconPercentage`) < 100 -> failed
+  // HOW TO EDIT:
+  // - To add/remove KPI fields from this source, update the return type and returned object
+  // - To manually change a specific day's KPI result, edit/add a date in `presetByDate`
   private getSupplyChainInvoiceLoanKpis(year: number, monthIndex: number, day: number): {
     totalInvoices: number;
     totalClients: number;
