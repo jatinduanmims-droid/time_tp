@@ -10,7 +10,7 @@
   <section class="topbar">
     <div>
       <h1>Unified Controls Dashboard</h1>
-      <p>Category-led layout with children stacked vertically, each showing KPI snapshots and failure calendar dates.</p>
+      <p>Category-led layout with controls stacked vertically, each showing KPI snapshots and failure calendar dates.</p>
     </div>
 
     <div class="topbar-meta">
@@ -20,7 +20,7 @@
 
   <!-- Main two-column workspace:
        - Left = parent controls
-       - Right = active category children
+       - Right = active category controls
        - Overall column widths are controlled from `.workspace` in SCSS.
        - To remove the whole left panel, delete the `<aside class="category-stack">...</aside>` block.
        - To remove the whole right panel, delete the `<section class="details-shell">...</section>` block. -->
@@ -28,7 +28,7 @@
     <!-- Parent control cards.
          If you want to change what appears under each parent control, edit this block.
          To remove the Favourite/Trade/Credit/Supply parent cards completely, delete this whole `<aside>...</aside>` block.
-         To remove only the child/control count pill, delete the `<div class="mini-pill">...</div>` line. -->
+         To remove only the control count pill, delete the `<div class="mini-pill">...</div>` line. -->
     <aside class="category-stack">
       <article
         class="category-card"
@@ -43,7 +43,7 @@
               <h2>{{ category.name }}</h2>
             </div>
           </div>
-          <div class="mini-pill">{{ getVisibleControls(category).length }} {{ getVisibleControls(category).length === 1 ? 'child' : 'children' }}</div>
+          <div class="mini-pill">{{ getCategoryControlCount(category) }} {{ getCategoryControlCount(category) === 1 ? 'control' : 'controls' }}</div>
         </div>
 
         <!-- Yesterday filter pills under each parent card.
@@ -56,7 +56,7 @@
             [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'failed'"
             (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'failed')">
             <!-- To rename or remove the failed-yesterday label, edit/delete the `<span>...</span>` line below. -->
-            <span>T-1 Failed</span>
+            <span>Failed Yesterday</span>
             <strong>{{ getTMinusOneCount(category, 'failed') }}</strong>
           </button>
 
@@ -66,20 +66,20 @@
             [class.selected]="activeCategoryKey === category.key && activeStatusFilterByCategory[category.key] === 'passed'"
             (click)="$event.stopPropagation(); filterCategoryByStatus(category.key, 'passed')">
             <!-- To rename or remove the passed-yesterday label, edit/delete the `<span>...</span>` line below. -->
-            <span>T-1 Passed</span>
+            <span>Passed Yesterday</span>
             <strong>{{ getTMinusOneCount(category, 'passed') }}</strong>
           </button>
         </div>
 
         <ng-template #favouriteSummary>
           <!-- Favourite summary:
-               This block renders the saved favourites count in the left-side Favourite card.
+              This block renders the saved favourites count in the left-side Favourite card.
                If you want Favourite to show a different summary layout later, edit this block.
                To remove the Favourite summary pill, delete this whole template block. -->
           <div class="tminus-grid favourite-grid">
             <div class="tminus-pill favourite-summary">
               <span>Saved</span>
-              <strong>{{ getVisibleControls(category).length }}</strong>
+              <strong>{{ getCategoryControlCount(category) }}</strong>
             </div>
           </div>
         </ng-template>
@@ -87,21 +87,73 @@
     </aside>
 
     <!-- Right-side details panel.
-         Child rows shown here come from `getVisibleControls(activeCategory)` in the TS file,
-         which means this area reacts to parent selection and T-1 pass/fail filters.
+         Control rows shown here come from `getVisibleControls(activeCategory)` in the TS file,
+         which means this area reacts to parent selection and failed/passed-yesterday filters.
          To remove the entire controls area on the right, delete this whole `<section class="details-shell">...</section>` block. -->
     <section class="details-shell" *ngIf="getActiveCategory() as activeCategory">
       <div class="details-head">
-        <div>
-          <!-- To remove the right-panel heading, delete the `<h2>...</h2>` line below. -->
-          <h2>{{ activeCategory.name }}</h2>
+        <div class="details-head-main">
+          <div>
+            <!-- To remove the right-panel heading, delete the `<h2>...</h2>` line below. -->
+            <h2>{{ activeCategory.name }}</h2>
+          </div>
+
+          <!-- Inline search next to the active category title.
+               DATA SOURCE:
+               - Typed text comes from `controlSearchQueryByCategory` via `updateControlSearch()`
+               - Suggestions come from `getControlSuggestions(activeCategory)`
+               - Selected chips come from `getSelectedControls(activeCategory)`
+               TO REMOVE THIS WHOLE SEARCH FEATURE:
+               - Delete this whole `<div class="search-input-wrap">...</div>` block
+               - Delete the selected chip block just below (`<div class="selected-controls"...>...</div>`)
+               - Then you can also remove the search helpers from the TS file. -->
+          <div class="search-input-wrap">
+            <span class="search-icon">⌕</span>
+            <!-- To change the search placeholder text, edit the `placeholder="..."` value below. -->
+            <input
+              type="text"
+              [ngModel]="controlSearchQueryByCategory[activeCategory.key]"
+              (ngModelChange)="updateControlSearch(activeCategory.key, $event)"
+              placeholder="Search controls"
+              autocomplete="off" />
+
+            <!-- Suggestions dropdown:
+                 To remove the suggestion list but keep the search input, delete this whole `<div class="search-suggestions"...>...</div>` block. -->
+            <div class="search-suggestions" *ngIf="getControlSuggestions(activeCategory).length">
+              <button
+                type="button"
+                class="suggestion-btn"
+                *ngFor="let suggestion of getControlSuggestions(activeCategory)"
+                (click)="addControlSelection(activeCategory.key, suggestion.id)">
+                {{ suggestion.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Selected control chips:
+               These chips represent controls selected from the search suggestions.
+               To remove only the chips but keep search/suggestions, delete this whole `<div class="selected-controls"...>...</div>` block. -->
+          <div class="selected-controls" *ngIf="getSelectedControls(activeCategory).length">
+            <span class="control-chip" *ngFor="let selectedControl of getSelectedControls(activeCategory)">
+              {{ selectedControl.name }}
+              <!-- To remove the chip "x" action, delete this `<button ...>×</button>` line below. -->
+              <button
+                type="button"
+                (click)="removeControlSelection(activeCategory.key, selectedControl.id)"
+                [attr.aria-label]="'Remove ' + selectedControl.name">
+                ×
+              </button>
+            </span>
+          </div>
         </div>
+
         <div class="details-head-right">
           <!-- "Show All" appears only when a pass/fail filter is active for the current parent.
+               It now also appears when search-selected control chips are active.
                If you want a permanent clear/reset button, change the `*ngIf` condition here.
                To remove this button completely, delete the whole `<button ...>Show All</button>` block. -->
           <button
-            *ngIf="activeCategory.key !== 'favourite' && activeStatusFilterByCategory[activeCategory.key]"
+            *ngIf="shouldShowResetControls(activeCategory)"
             type="button"
             class="clear-filter-btn"
             (click)="selectControl(activeCategory.key)">
@@ -112,8 +164,8 @@
         </div>
       </div>
 
-      <!-- Child rows:
-           Each row is one child control under the selected parent.
+      <!-- Control rows:
+           Each row is one control under the selected parent.
            To change row structure, edit this block.
            To change child row height/spacing, use `.child-row` in SCSS.
            To remove the whole repeating control card component, delete the `<article class="child-row"...>...</article>` block below. -->
@@ -162,12 +214,8 @@
                - To remove the whole calendar component, delete this entire `<div class="calendar-card">...</div>` block. -->
           <div class="calendar-card">
             <div class="calendar-head">
-              <div>
-                <!-- To remove the calendar title, delete the `<h4>...</h4>` line below. -->
-                <h4>Status Calendar</h4>
-                <!-- To remove the helper subtitle, delete the `<small>...</small>` line below. -->
-                <small>Passed and failed daily status</small>
-              </div>
+              <!-- To remove the calendar title, delete the `<h4>...</h4>` line below. -->
+              <h4>Status Calendar</h4>
               <!-- To remove the Passed/Failed summary badges, delete this whole `<div class="calendar-summary">...</div>` block. -->
               <div class="calendar-summary">
                 <div class="calendar-badge pass">{{ getStatusCount(control, 'passed') }} Passed</div>
@@ -178,7 +226,8 @@
             <div class="calendar-nav">
               <!-- Calendar navigation:
                    Previous/Next changes month view.
-                   Today resets to the demo snapshot date.
+                   Today resets to the live system date from `getCurrentBusinessDate()` in the TS file.
+                   If you later want Today to point to a fixed reporting date, change that TS helper in one place.
                    To remove any one of these buttons, delete that button line directly. -->
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
               <!-- To remove the month label, delete the `<div class="calendar-month">...</div>` line below. -->
@@ -230,10 +279,10 @@
         <div class="empty-state">
           <h3>No controls here yet</h3>
           <p *ngIf="activeCategory.key === 'favourite'; else filteredEmpty">
-            Click the star on any child control to add it to Favourite.
+            Click the star on any control to add it to Favourite.
           </p>
           <ng-template #filteredEmpty>
-            <p>No child controls matched the current filter. Use Show All or switch to another parent control.</p>
+            <p>No controls matched the current filter. Use Show All or switch to another parent control.</p>
           </ng-template>
         </div>
       </ng-template>

@@ -4,8 +4,22 @@ import { DemoDashboardComponent } from './demo.dashboard';
 describe('DemoDashboardComponent', () => {
   let component: DemoDashboardComponent;
   let fixture: ComponentFixture<DemoDashboardComponent>;
+  let today: Date;
+  let yesterday: Date;
+
+  const monthKey = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const dateLabel = (date: Date): string => date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
 
   beforeEach(async () => {
+    today = new Date();
+    today.setHours(0, 0, 0, 0);
+    yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
     await TestBed.configureTestingModule({
       imports: [DemoDashboardComponent]
     }).compileComponents();
@@ -20,7 +34,7 @@ describe('DemoDashboardComponent', () => {
   });
 
   // Default state:
-  // The first Trade child is selected on initial load.
+  // The first Trade control is selected on initial load.
   it('should initialize with the first trade control selected', () => {
     expect(component.activeControlId).toBe('incoming-requests-management');
   });
@@ -47,6 +61,7 @@ describe('DemoDashboardComponent', () => {
 
   it('should show SLA failed and pass counts for a failed incoming requests day', () => {
     const control = component.getActiveControl();
+    component.viewedMonthByControl[control.id] = '2026-03';
 
     component.selectCalendarDay(control.id, 29);
 
@@ -57,6 +72,7 @@ describe('DemoDashboardComponent', () => {
 
   it('should show SLA pass count for a passed incoming requests day', () => {
     const control = component.getActiveControl();
+    component.viewedMonthByControl[control.id] = '2026-03';
 
     component.selectCalendarDay(control.id, 30);
 
@@ -67,6 +83,7 @@ describe('DemoDashboardComponent', () => {
   it('should show invoice-loan recon KPIs for a failed supply chain day', () => {
     component.selectControl('supply');
     const control = component.getActiveControl();
+    component.viewedMonthByControl[control.id] = '2026-03';
 
     component.selectCalendarDay(control.id, 29);
 
@@ -77,26 +94,34 @@ describe('DemoDashboardComponent', () => {
 
   it('should move the calendar month backward', () => {
     const control = component.getActiveControl();
+    const expected = new Date(today.getFullYear(), today.getMonth() - 1, 1).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    });
 
     component.shiftCalendarMonth(control.id, -1);
 
-    expect(component.getMonthLabel(control.id)).toBe('February 2026');
+    expect(component.getMonthLabel(control.id)).toBe(expected);
   });
 
-  it('should filter the active category by T-1 failed controls', () => {
+  it('should filter the active category by failed-yesterday controls', () => {
     component.filterCategoryByStatus('trade', 'failed');
 
-    expect(component.getActiveFilterLabel()).toBe('T-1 Failed children');
+    expect(component.getActiveFilterLabel()).toBe('Failed Yesterday controls');
     expect(component.getVisibleControls(component.getActiveCategory()).length).toBeGreaterThan(0);
   });
 
-  it('should map the T-1 filter to the calendar selection', () => {
+  it('should map the failed-yesterday filter to the calendar selection', () => {
     component.filterCategoryByStatus('trade', 'failed');
 
     const control = component.getVisibleControls(component.getActiveCategory())[0];
+    const currentMonthLabel = today.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    });
 
-    expect(component.getMonthLabel(control.id)).toBe('March 2026');
-    expect(component.getDisplayStats(control)[0].value).toBe('29 Mar 2026');
+    expect(component.getMonthLabel(control.id)).toBe(currentMonthLabel);
+    expect(component.getDisplayStats(control)[0].value).toBe(dateLabel(yesterday));
   });
 
   it('should add a control to favourites', () => {
@@ -107,9 +132,10 @@ describe('DemoDashboardComponent', () => {
     expect(component.getVisibleControls(component.getActiveCategory()).some((control) => control.id === 'evergreen-cancellations')).toBeTrue();
   });
 
-  it('should keep future dates neutral in the snapshot month', () => {
+  it('should keep future dates neutral in the current month', () => {
     const control = component.getActiveControl();
-    const futureDay = component.getCalendarDays(control).find((day) => day.dayNumber === 31);
+    component.viewedMonthByControl[control.id] = monthKey(today);
+    const futureDay = component.getCalendarDays(control).find((day) => day.dayNumber === today.getDate() + 1);
 
     expect(futureDay?.future).toBeTrue();
     expect(futureDay?.clickable).toBeFalse();
@@ -117,13 +143,16 @@ describe('DemoDashboardComponent', () => {
     expect(futureDay?.passed).toBeFalse();
   });
 
-  it('should reset to the snapshot date on calendar reset', () => {
+  it('should reset to the current system date on calendar reset', () => {
     const control = component.getActiveControl();
 
     component.shiftCalendarMonth(control.id, -1);
     component.resetCalendarToCurrentDate(control.id);
 
-    expect(component.getMonthLabel(control.id)).toBe('March 2026');
-    expect(component.getDisplayStats(control)[0].value).toBe('30 Mar 2026');
+    expect(component.getMonthLabel(control.id)).toBe(today.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    }));
+    expect(component.getDisplayStats(control)[0].value).toBe(dateLabel(today));
   });
 });

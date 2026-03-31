@@ -51,15 +51,12 @@ interface DashboardCategory {
 })
 export class DemoDashboardComponent {
   // Snapshot label shown in the header pill.
-  readonly snapshotLabel = 'Snapshot: 30 Mar 2026';
-
-  // T-1 summaries are calculated relative to this date.
-  // Change this if you want the left-panel T-1 status counts to point to another snapshot day.
-  private readonly snapshotDate = new Date(2026, 2, 30);
-
-  // Calendar view for each child starts from this month.
-  // Month index is zero-based: 2 = March.
-  private readonly defaultCalendarMonth = new Date(2026, 2, 1);
+  // LIVE DATE NOTE:
+  // - This now follows the machine/system date automatically, so you do not need to update it manually every day.
+  // - If you ever want to force a fixed business date instead, edit `getCurrentBusinessDate()`.
+  get snapshotLabel(): string {
+    return `Snapshot: ${this.formatDateLabel(this.getCurrentBusinessDate())}`;
+  }
 
   // DEMO DATA SOURCE:
   // All category / control / KPI data is currently mocked locally in this file.
@@ -260,6 +257,16 @@ export class DemoDashboardComponent {
   // If you want a different default favourite set, change the starting ids here.
   favoriteControlIds = new Set<string>(['incoming-requests-management']);
 
+  // Search/filter state for the right-panel controls list.
+  // HOW TO EDIT CONTROL SEARCH:
+  // - The typed text in the search box lives in `controlSearchQueryByCategory`
+  // - The selected multi-select chips live in `selectedControlIdsByCategory`
+  // - To change suggestion matching (for example: startsWith instead of contains),
+  //   edit `getControlSuggestions()`
+  // - To change what happens after a suggestion is picked, edit `addControlSelection()`
+  controlSearchQueryByCategory: Record<string, string> = {};
+  selectedControlIdsByCategory: Record<string, string[]> = {};
+
   // Stores the clicked calendar day per child so KPIs can drill into that selected date.
   selectedCalendarDayByControl: Record<string, number | null> = {};
 
@@ -267,16 +274,28 @@ export class DemoDashboardComponent {
   // This is what powers Previous / Next month navigation.
   viewedMonthByControl: Record<string, string> = Object.fromEntries(
     this.categories.flatMap((category) =>
-      category.controls.map((control) => [control.id, this.getMonthKey(this.defaultCalendarMonth)])
+      category.controls.map((control) => [control.id, this.getMonthKey(this.getCurrentBusinessDate())])
     )
   );
+
+  constructor() {
+    this.controlSearchQueryByCategory = Object.fromEntries(
+      this.categories.map((category) => [category.key, ''])
+    );
+
+    this.selectedControlIdsByCategory = Object.fromEntries(
+      this.categories.map((category) => [category.key, []])
+    );
+  }
 
   // Called when a user clicks a parent card.
   // This resets the T-1 filter for that parent and shows all of its children again.
   selectControl(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
     this.activeStatusFilterByCategory[categoryKey] = null;
-    this.activeControlId = this.getVisibleControls(this.getActiveCategory())[0]?.id ?? this.selectedControlByCategory[categoryKey];
+    this.controlSearchQueryByCategory[categoryKey] = '';
+    this.selectedControlIdsByCategory[categoryKey] = [];
+    this.syncActiveControl(categoryKey);
   }
 
   // Called when user clicks T-1 Failed / T-1 Passed under a parent card.
@@ -287,8 +306,9 @@ export class DemoDashboardComponent {
   filterCategoryByStatus(categoryKey: DashboardCategory['key'], status: 'passed' | 'failed'): void {
     this.activeCategoryKey = categoryKey;
     this.activeStatusFilterByCategory[categoryKey] = status;
+    this.controlSearchQueryByCategory[categoryKey] = '';
 
-    const snapshotMonthKey = this.getMonthKey(this.snapshotDate);
+    const snapshotMonthKey = this.getMonthKey(this.getCurrentBusinessDate());
     const tMinusOneDay = this.getTMinusOneDate().getDate();
     const category = this.categories.find((item) => item.key === categoryKey) ?? this.categories[0];
 
@@ -301,16 +321,81 @@ export class DemoDashboardComponent {
         this.getTMinusOneStatus(control) === status ? tMinusOneDay : null;
     });
 
-    const visibleControls = this.getVisibleControls(
-      category
-    );
-
-    this.activeControlId = visibleControls[0]?.id ?? this.selectedControlByCategory[categoryKey];
+    this.syncActiveControl(categoryKey);
   }
 
   handleControlChange(categoryKey: DashboardCategory['key']): void {
     this.activeCategoryKey = categoryKey;
     this.activeControlId = this.selectedControlByCategory[categoryKey];
+  }
+
+  // Search box typing handler for the controls list.
+  // If you want the input to auto-select on exact match or clear suggestions on blur,
+  // this is a good place to extend the behavior.
+  updateControlSearch(categoryKey: DashboardCategory['key'], value: string): void {
+    this.controlSearchQueryByCategory[categoryKey] = value;
+  }
+
+  // Suggestion picker for the multi-select control search.
+  // This turns a suggestion into a removable chip and narrows the right panel to only those controls.
+  addControlSelection(categoryKey: DashboardCategory['key'], controlId: string): void {
+    const selectedIds = this.selectedControlIdsByCategory[categoryKey] ?? [];
+
+    if (!selectedIds.includes(controlId)) {
+      this.selectedControlIdsByCategory[categoryKey] = [...selectedIds, controlId];
+    }
+
+    this.controlSearchQueryByCategory[categoryKey] = '';
+    this.activeCategoryKey = categoryKey;
+    this.syncActiveControl(categoryKey);
+  }
+
+  // Removes one selected-control chip from the multi-select search.
+  // Delete/edit this function if you later want chip removal to only affect UI, not filtering.
+  removeControlSelection(categoryKey: DashboardCategory['key'], controlId: string): void {
+    this.selectedControlIdsByCategory[categoryKey] = (this.selectedControlIdsByCategory[categoryKey] ?? []).filter(
+      (selectedId) => selectedId !== controlId
+    );
+
+    this.syncActiveControl(categoryKey);
+  }
+
+  // Resets the right-panel search back to "all controls" for the active parent.
+  // This clears both the selected chips and any partially typed query.
+  clearControlSelections(categoryKey: DashboardCategory['key']): void {
+    this.selectedControlIdsByCategory[categoryKey] = [];
+    this.controlSearchQueryByCategory[categoryKey] = '';
+    this.syncActiveControl(categoryKey);
+  }
+
+  // Returns the selected control-chip objects for the active parent.
+  // The HTML uses this to render chip labels plus the remove "x" action.
+  getSelectedControls(category: DashboardCategory): DashboardControl[] {
+    const selectedIds = this.selectedControlIdsByCategory[category.key] ?? [];
+    const sourceControls = this.getSearchSourceControls(category);
+
+    return selectedIds
+      .map((selectedId) => sourceControls.find((control) => control.id === selectedId))
+      .filter((control): control is DashboardControl => !!control);
+  }
+
+  // Suggestion list shown under the search box while the user types.
+  // MATCHING RULE:
+  // - Right now this matches any control name containing the typed text
+  // - To make it stricter/looser, edit the `includes()` check below
+  // - Suggestions exclude already-selected controls so the same chip is not added twice
+  getControlSuggestions(category: DashboardCategory): DashboardControl[] {
+    const query = (this.controlSearchQueryByCategory[category.key] ?? '').trim().toLowerCase();
+
+    if (!query) {
+      return [];
+    }
+
+    const selectedIds = new Set(this.selectedControlIdsByCategory[category.key] ?? []);
+
+    return this.getSearchSourceControls(category).filter((control) =>
+      !selectedIds.has(control.id) && control.name.toLowerCase().includes(query)
+    );
   }
 
   // Toggles a control inside/outside the Favourite parent section.
@@ -324,6 +409,11 @@ export class DemoDashboardComponent {
     }
 
     if (this.activeCategoryKey === 'favourite' && !this.favoriteControlIds.has(controlId)) {
+      // Favourite is a virtual category, so if a saved control is removed here
+      // also remove it from the selected search chips for Favourite.
+      this.selectedControlIdsByCategory['favourite'] = (this.selectedControlIdsByCategory['favourite'] ?? []).filter(
+        (selectedId) => selectedId !== controlId
+      );
       this.activeControlId = this.getVisibleControls(this.getActiveCategory())[0]?.id ?? '';
     }
   }
@@ -356,24 +446,19 @@ export class DemoDashboardComponent {
   // - To change Favourite behavior, edit the `category.key === 'favourite'` block
   // - To change filter logic, edit the final `return` statement in this function
   getVisibleControls(category: DashboardCategory): DashboardControl[] {
-    // Favourite is a virtual parent.
-    // It does not own its own dataset; it reuses controls saved from the real categories.
-    if (category.key === 'favourite') {
-      return this.getAllControls().filter((control) => this.favoriteControlIds.has(control.id));
+    const controlsForCategory = this.getSearchSourceControls(category);
+    const selectedIds = this.selectedControlIdsByCategory[category.key] ?? [];
+
+    if (!selectedIds.length) {
+      return controlsForCategory;
     }
 
-    const statusFilter = this.activeStatusFilterByCategory[category.key];
-
-    if (!statusFilter) {
-      return category.controls;
-    }
-
-    return category.controls.filter((control) => this.getTMinusOneStatus(control) === statusFilter);
+    return controlsForCategory.filter((control) => selectedIds.includes(control.id));
   }
 
   getActiveFilterLabel(): string {
     // This label is what shows in the right-side header pill above the controls list.
-    // If you want to rename UI text like "Saved favourites" or "All children", change it here.
+    // If you want to rename UI text like "Saved favourites" or "All controls", change it here.
     if (this.activeCategoryKey === 'favourite') {
       return 'Saved favourites';
     }
@@ -381,10 +466,10 @@ export class DemoDashboardComponent {
     const statusFilter = this.activeStatusFilterByCategory[this.activeCategoryKey];
 
     if (!statusFilter) {
-      return 'All children';
+      return 'All controls';
     }
 
-    return statusFilter === 'failed' ? 'T-1 Failed children' : 'T-1 Passed children';
+    return statusFilter === 'failed' ? 'Failed Yesterday controls' : 'Passed Yesterday controls';
   }
 
   getActiveControl(): DashboardControl {
@@ -397,6 +482,25 @@ export class DemoDashboardComponent {
 
   getActiveCategoryAccent(): string {
     return this.getActiveCategory().accent;
+  }
+
+  hasSelectedControls(category: DashboardCategory): boolean {
+    return (this.selectedControlIdsByCategory[category.key] ?? []).length > 0;
+  }
+
+  // Count pill helper for the left-side parent cards.
+  // This intentionally ignores the selected search chips so the parent counts stay stable.
+  // If you want the count pill to reflect the temporary search selection instead, switch this to `getVisibleControls(category).length`.
+  getCategoryControlCount(category: DashboardCategory): number {
+    return this.getSearchSourceControls(category).length;
+  }
+
+  // Controls whether the "Show All" button is visible in the right-panel header.
+  // HOW TO EDIT:
+  // - If you want Show All only for the search chips, remove the T-1 condition here.
+  // - If you want Show All hidden for Favourite too, add `category.key !== 'favourite'` here.
+  shouldShowResetControls(category: DashboardCategory): boolean {
+    return !!this.activeStatusFilterByCategory[category.key] || this.hasSelectedControls(category);
   }
 
   // Legacy helper kept for spec compatibility.
@@ -416,13 +520,17 @@ export class DemoDashboardComponent {
       this.selectedCalendarDayByControl[controlId] === day ? null : day;
   }
 
-  // Double-clicking a calendar day resets the child back to the snapshot/current date context.
-  // It also brings the visible calendar month back to the snapshot month if needed.
+  // Double-clicking a calendar day resets the child back to the current business date context.
+  // It also brings the visible calendar month back to the current business month if needed.
   resetCalendarToCurrentDate(controlId: string): void {
-    // "Current date" in this demo means `snapshotDate`, not the machine's live today date.
-    // Update this if you later want the calendar reset to use real current date instead.
-    this.viewedMonthByControl[controlId] = this.getMonthKey(this.snapshotDate);
-    this.selectedCalendarDayByControl[controlId] = this.snapshotDate.getDate();
+    // LIVE DATE RESET:
+    // - This uses the real system date returned by `getCurrentBusinessDate()`.
+    // - If you want the reset button/double-click to go to a fixed reporting date instead,
+    //   change `getCurrentBusinessDate()` in one place rather than editing this function again.
+    const currentBusinessDate = this.getCurrentBusinessDate();
+
+    this.viewedMonthByControl[controlId] = this.getMonthKey(currentBusinessDate);
+    this.selectedCalendarDayByControl[controlId] = currentBusinessDate.getDate();
   }
 
   // Moves the child calendar backward/forward by month.
@@ -626,7 +734,7 @@ export class DemoDashboardComponent {
 
   // Reads the month currently being shown for one specific child calendar.
   private getViewedMonth(controlId: string): Date {
-    const monthKey = this.viewedMonthByControl[controlId] ?? this.getMonthKey(this.defaultCalendarMonth);
+    const monthKey = this.viewedMonthByControl[controlId] ?? this.getMonthKey(this.getCurrentBusinessDate());
     const [year, month] = monthKey.split('-').map(Number);
 
     return new Date(year, month - 1, 1);
@@ -635,6 +743,31 @@ export class DemoDashboardComponent {
   // Stores month navigation state in a compact YYYY-MM format.
   private getMonthKey(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // Base controls used by both the visible list and the search suggestions.
+  // This keeps the search aligned with the current parent + T-1 failed/passed context.
+  // If you later want suggestions to ignore the failed/passed filter, edit this helper instead of `getVisibleControls()`.
+  private getSearchSourceControls(category: DashboardCategory): DashboardControl[] {
+    if (category.key === 'favourite') {
+      return this.getAllControls().filter((control) => this.favoriteControlIds.has(control.id));
+    }
+
+    const statusFilter = this.activeStatusFilterByCategory[category.key];
+
+    if (!statusFilter) {
+      return category.controls;
+    }
+
+    return category.controls.filter((control) => this.getTMinusOneStatus(control) === statusFilter);
+  }
+
+  // Keeps the right panel anchored to a valid visible control after filters/search chips change.
+  // If the current active control disappears from the filtered list, this falls back to the first visible control.
+  private syncActiveControl(categoryKey: DashboardCategory['key']): void {
+    const visibleControls = this.getVisibleControls(this.categories.find((category) => category.key === categoryKey) ?? this.categories[0]);
+
+    this.activeControlId = visibleControls[0]?.id ?? '';
   }
 
   // DEMO STATUS GENERATOR:
@@ -672,7 +805,7 @@ export class DemoDashboardComponent {
     return seed % 100 < threshold ? 'failed' : 'passed';
   }
 
-  // T-1 badges under each parent card are derived from the day before `snapshotDate`.
+  // T-1 badges under each parent card are derived from the day before `getCurrentBusinessDate()`.
   private getTMinusOneStatus(control: DashboardControl): 'passed' | 'failed' {
     const tMinusOne = this.getTMinusOneDate();
 
@@ -680,25 +813,51 @@ export class DemoDashboardComponent {
   }
 
   private getTMinusOneDate(): Date {
-    const tMinusOne = new Date(this.snapshotDate);
-    tMinusOne.setDate(this.snapshotDate.getDate() - 1);
+    const currentBusinessDate = this.getCurrentBusinessDate();
+    const tMinusOne = new Date(currentBusinessDate);
+    tMinusOne.setDate(currentBusinessDate.getDate() - 1);
 
     return tMinusOne;
   }
 
-  // Highlights "today" in the demo calendar.
-  // Right now this is fixed to the snapshot month for demo purposes.
+  // Highlights the real current date in the calendar.
+  // To switch back to a fixed business/reporting date later, edit `getCurrentBusinessDate()`.
   private isToday(viewedMonth: Date, day: number): boolean {
-    return viewedMonth.getFullYear() === this.snapshotDate.getFullYear()
-      && viewedMonth.getMonth() === this.snapshotDate.getMonth()
-      && day === this.snapshotDate.getDate();
+    const currentBusinessDate = this.getCurrentBusinessDate();
+
+    return viewedMonth.getFullYear() === currentBusinessDate.getFullYear()
+      && viewedMonth.getMonth() === currentBusinessDate.getMonth()
+      && day === currentBusinessDate.getDate();
   }
 
   // Future dates should stay neutral/unavailable because the day has not happened yet.
   private isFutureDate(viewedMonth: Date, day: number): boolean {
     const candidate = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
 
-    return candidate.getTime() > this.snapshotDate.getTime();
+    return candidate.getTime() > this.getCurrentBusinessDate().getTime();
+  }
+
+  // CENTRAL DATE SOURCE FOR THE ORIGINAL DASHBOARD:
+  // - This is the one place that decides what "today", "yesterday", the header snapshot label,
+  //   the default month, and the reset-to-current-date action all mean.
+  // - It now follows the machine/system date automatically, so daily/monthly rollover does not require manual edits.
+  // - If business later wants the dashboard to lock to a reporting date from an API or config,
+  //   replace the body of this function instead of chasing date logic across the file.
+  private getCurrentBusinessDate(): Date {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return today;
+  }
+
+  // Date-label formatter used for UI text like "Snapshot: 31 Mar 2026".
+  // If you want a different display format everywhere, change it here once.
+  private formatDateLabel(date: Date): string {
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   }
 
   // Small deterministic hash used by `getDayStatus()` to make demo month data repeatable.
