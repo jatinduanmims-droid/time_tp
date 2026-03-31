@@ -242,6 +242,7 @@ export class DemoDashboardComponent {
   activeStatusFilterByCategory: Record<string, 'passed' | 'failed' | null> = {};
 
   // Saved favourites shown under the Favourite parent card.
+  // If you want a different default favourite set, change the starting ids here.
   favoriteControlIds = new Set<string>(['incoming-requests-management']);
 
   // Stores the clicked calendar day per child so KPIs can drill into that selected date.
@@ -295,6 +296,8 @@ export class DemoDashboardComponent {
   }
 
   // Toggles a child inside/outside the Favourite parent section.
+  // This is the main function to update if favourite behavior changes later
+  // (for example: persisting favourites to local storage or backend).
   toggleFavorite(controlId: string): void {
     if (this.favoriteControlIds.has(controlId)) {
       this.favoriteControlIds.delete(controlId);
@@ -332,6 +335,8 @@ export class DemoDashboardComponent {
   // Main filter used by the right panel list.
   // If no T-1 filter is active, all children of the selected parent are shown.
   getVisibleControls(category: DashboardCategory): DashboardControl[] {
+    // Favourite is a virtual parent.
+    // It does not own its own dataset; it reuses controls saved from the real categories.
     if (category.key === 'favourite') {
       return this.getAllControls().filter((control) => this.favoriteControlIds.has(control.id));
     }
@@ -346,6 +351,8 @@ export class DemoDashboardComponent {
   }
 
   getActiveFilterLabel(): string {
+    // This label is what shows in the right-side header pill above the controls list.
+    // If you want to rename UI text like "Saved favourites" or "All children", change it here.
     if (this.activeCategoryKey === 'favourite') {
       return 'Saved favourites';
     }
@@ -391,6 +398,8 @@ export class DemoDashboardComponent {
   // Double-clicking a calendar day resets the child back to the snapshot/current date context.
   // It also brings the visible calendar month back to the snapshot month if needed.
   resetCalendarToCurrentDate(controlId: string): void {
+    // "Current date" in this demo means `snapshotDate`, not the machine's live today date.
+    // Update this if you later want the calendar reset to use real current date instead.
     this.viewedMonthByControl[controlId] = this.getMonthKey(this.snapshotDate);
     this.selectedCalendarDayByControl[controlId] = this.snapshotDate.getDate();
   }
@@ -425,6 +434,63 @@ export class DemoDashboardComponent {
     }
 
     const viewedMonth = this.getViewedMonth(control.id);
+
+    if (control.id === 'incoming-requests-management') {
+      // ORIGINAL-FILE MAPPING:
+      // Incoming Requests Management Control is mapped to Jatin_dashboard-style KPI fields.
+      // If you want to change which KPIs appear for failed/passed days, edit the returned cards here.
+      const jatinKpis = this.getIncomingRequestsJatinKpis(
+        viewedMonth.getFullYear(),
+        viewedMonth.getMonth(),
+        selectedDay
+      );
+      const selectedDateLabel = `${selectedDay} ${viewedMonth.toLocaleDateString('en-US', { month: 'short' })} ${viewedMonth.getFullYear()}`;
+
+      if (jatinKpis.slaPercentage < 100) {
+        return [
+          { label: 'Selected Day', value: selectedDateLabel, note: 'Mapped from jatin-dashboard' },
+          { label: 'SLA Failed Count', value: `${jatinKpis.slaBreach}`, note: 'Derived from slaBreach' },
+          { label: 'SLA Pass Count', value: `${jatinKpis.slaMet}`, note: 'Derived from slaMet' },
+          { label: 'SLA Health', value: `${jatinKpis.slaPercentage}%`, note: 'Below 100%, treated as failed' }
+        ];
+      }
+
+      return [
+        { label: 'Selected Day', value: selectedDateLabel, note: 'Mapped from jatin-dashboard' },
+        { label: 'SLA Pass Count', value: `${jatinKpis.slaMet}`, note: 'Derived from slaMet' },
+        { label: 'SLA Health', value: `${jatinKpis.slaPercentage}%`, note: 'Healthy day' },
+        { label: 'Urgent Requests', value: `${jatinKpis.urgentToday}`, note: 'Mapped from urgentToday' }
+      ];
+    }
+
+    if (control.id === 'supply-chain-financing') {
+      // ORIGINAL-FILE MAPPING:
+      // Supply Chain Financing is mapped to invoice-loan.ts style KPI fields.
+      // If you want to change which KPI cards show for failed/passed days, edit this block.
+      const invoiceLoanKpis = this.getSupplyChainInvoiceLoanKpis(
+        viewedMonth.getFullYear(),
+        viewedMonth.getMonth(),
+        selectedDay
+      );
+      const selectedDateLabel = `${selectedDay} ${viewedMonth.toLocaleDateString('en-US', { month: 'short' })} ${viewedMonth.getFullYear()}`;
+
+      if (invoiceLoanKpis.reconPercentage < 100) {
+        return [
+          { label: 'Selected Day', value: selectedDateLabel, note: 'Mapped from invoice-loan.ts' },
+          { label: 'Recon Failed', value: `${invoiceLoanKpis.reconFailed}`, note: 'Mapped from reconFailed' },
+          { label: 'Recon Passed', value: `${invoiceLoanKpis.reconPassed}`, note: 'Mapped from reconPassed' },
+          { label: 'Recon %', value: `${invoiceLoanKpis.reconPercentage}%`, note: 'Below 100%, treated as failed' }
+        ];
+      }
+
+      return [
+        { label: 'Selected Day', value: selectedDateLabel, note: 'Mapped from invoice-loan.ts' },
+        { label: 'Total Invoices', value: `${invoiceLoanKpis.totalInvoices}`, note: 'Mapped from totalInvoices' },
+        { label: 'Total Clients', value: `${invoiceLoanKpis.totalClients}`, note: 'Mapped from totalClients' },
+        { label: 'Recon %', value: `${invoiceLoanKpis.reconPercentage}%`, note: 'Mapped from reconPercentage' }
+      ];
+    }
+
     const status = this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), selectedDay);
     const outcome = status === 'failed' ? 'Failed' : 'Passed';
     const outcomeDetail = status === 'failed' ? 'Requires review' : 'Processed successfully';
@@ -494,6 +560,8 @@ export class DemoDashboardComponent {
 
   // Summary badges at the top of the calendar use this count for the currently viewed month.
   getStatusCount(control: DashboardControl, status: 'passed' | 'failed'): number {
+    // Calendar badges ("Passed" / "Failed") use this count for the visible month only.
+    // If you later want all-time counts or selected-range counts, change this function.
     const viewedMonth = this.getViewedMonth(control.id);
     const totalDays = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 0).getDate();
     let count = 0;
@@ -538,6 +606,20 @@ export class DemoDashboardComponent {
   // This makes month navigation work across older/newer months without requiring backend data yet.
   // Replace this function with real historical status data when API data is available.
   private getDayStatus(control: DashboardControl, year: number, monthIndex: number, day: number): 'passed' | 'failed' {
+    if (control.id === 'incoming-requests-management') {
+      // Jatin-dashboard mapping rule:
+      // Anything below 100% SLA Health is treated as failed.
+      const jatinKpis = this.getIncomingRequestsJatinKpis(year, monthIndex, day);
+      return jatinKpis.slaPercentage === 100 ? 'passed' : 'failed';
+    }
+
+    if (control.id === 'supply-chain-financing') {
+      // Invoice-loan mapping rule:
+      // Anything below 100% Recon % is treated as failed.
+      const invoiceLoanKpis = this.getSupplyChainInvoiceLoanKpis(year, monthIndex, day);
+      return invoiceLoanKpis.reconPercentage === 100 ? 'passed' : 'failed';
+    }
+
     const threshold = control.statusLabel === 'Needs Focus'
       ? 34
       : control.statusLabel === 'Watchlist'
@@ -580,5 +662,92 @@ export class DemoDashboardComponent {
   // Small deterministic hash used by `getDayStatus()` to make demo month data repeatable.
   private hashValue(input: string): number {
     return Array.from(input).reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
+  }
+
+  // Preview/original demo mapping for the control linked to Jatin_dashboard KPIs.
+  // The rule is:
+  // - SLA Health (`slaPercentage`) = 100 -> passed
+  // - SLA Health (`slaPercentage`) < 100 -> failed
+  private getIncomingRequestsJatinKpis(year: number, monthIndex: number, day: number): {
+    totalToday: number;
+    urgentToday: number;
+    slaPercentage: number;
+    slaMet: number;
+    slaBreach: number;
+  } {
+    // This is demo seed data for the original dashboard.
+    // Replace these values with real Jatin_dashboard service data when API integration is ready.
+    const presetByDate: Record<string, { totalToday: number; urgentToday: number; slaPercentage: number }> = {
+      '2026-03-26': { totalToday: 22, urgentToday: 2, slaPercentage: 100 },
+      '2026-03-27': { totalToday: 18, urgentToday: 1, slaPercentage: 100 },
+      '2026-03-28': { totalToday: 26, urgentToday: 4, slaPercentage: 96 },
+      '2026-03-29': { totalToday: 31, urgentToday: 5, slaPercentage: 92 },
+      '2026-03-30': { totalToday: 24, urgentToday: 3, slaPercentage: 100 }
+    };
+    const dateKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const baseKpis = presetByDate[dateKey] ?? (() => {
+      const seed = this.hashValue(`incoming-requests-management-${dateKey}`);
+      const totalToday = 18 + (seed % 14);
+      const urgentToday = 1 + (seed % 5);
+      const slaPercentage = seed % 6 === 0 ? 96 : 100;
+
+      return { totalToday, urgentToday, slaPercentage };
+    })();
+    const slaMet = Math.round((baseKpis.totalToday * baseKpis.slaPercentage) / 100);
+    const slaBreach = Math.max(baseKpis.totalToday - slaMet, 0);
+
+    return {
+      ...baseKpis,
+      slaMet,
+      slaBreach
+    };
+  }
+
+  // Demo/original mapping for Supply Chain Financing based on invoice-loan.ts analytics.
+  // The rule is:
+  // - Recon % (`reconPercentage`) = 100 -> passed
+  // - Recon % (`reconPercentage`) < 100 -> failed
+  private getSupplyChainInvoiceLoanKpis(year: number, monthIndex: number, day: number): {
+    totalInvoices: number;
+    totalClients: number;
+    reconPassed: number;
+    reconFailed: number;
+    reconPercentage: number;
+  } {
+    // This is demo seed data for the original dashboard.
+    // Replace these values with real invoice-loan analytics when API/service integration is ready.
+    const presetByDate: Record<string, {
+      totalInvoices: number;
+      totalClients: number;
+      reconPassed: number;
+      reconFailed: number;
+      reconPercentage: number;
+    }> = {
+      '2026-03-26': { totalInvoices: 205, totalClients: 18, reconPassed: 188, reconFailed: 17, reconPercentage: 92 },
+      '2026-03-27': { totalInvoices: 208, totalClients: 18, reconPassed: 191, reconFailed: 17, reconPercentage: 92 },
+      '2026-03-28': { totalInvoices: 214, totalClients: 19, reconPassed: 195, reconFailed: 19, reconPercentage: 91 },
+      '2026-03-29': { totalInvoices: 216, totalClients: 19, reconPassed: 197, reconFailed: 19, reconPercentage: 91 },
+      '2026-03-30': { totalInvoices: 220, totalClients: 20, reconPassed: 220, reconFailed: 0, reconPercentage: 100 }
+    };
+    const dateKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    if (presetByDate[dateKey]) {
+      return presetByDate[dateKey];
+    }
+
+    const seed = this.hashValue(`supply-chain-financing-${dateKey}`);
+    const totalInvoices = 180 + (seed % 45);
+    const totalClients = 14 + (seed % 8);
+    const reconPercentage = seed % 5 === 0 ? 88 : 100;
+    const reconPassed = Math.round((totalInvoices * reconPercentage) / 100);
+    const reconFailed = Math.max(totalInvoices - reconPassed, 0);
+
+    return {
+      totalInvoices,
+      totalClients,
+      reconPassed,
+      reconFailed,
+      reconPercentage
+    };
   }
 }

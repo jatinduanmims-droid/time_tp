@@ -294,6 +294,8 @@
 }
 
 .details-head-right {
+  /* Right side of the details header:
+     Holds the filter label pill plus the optional Show All action. */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -316,6 +318,8 @@
 }
 
 .clear-filter-btn {
+  /* Show All button:
+     If you want this action larger/smaller, start by changing `padding` and `font-size`. */
   border: 1px solid var(--line-soft);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
@@ -332,6 +336,7 @@
 }
 
 .empty-state {
+  /* Empty-state container used for Favourite and filter-no-results states. */
   padding: 18px;
   border-radius: 16px;
   border: 1px dashed #c8d4cf;
@@ -410,6 +415,8 @@
 }
 
 .favorite-btn {
+  /* Favourite star button:
+     Increase/decrease `width`, `height`, and `font-size` here if the star feels too small/large. */
   width: 28px;
   height: 28px;
   border: 1px solid var(--line-soft);
@@ -550,6 +557,7 @@
 }
 
 .calendar-nav-btn.today-btn {
+  /* Today shortcut in the calendar header. */
   color: var(--brand);
   border-color: rgba(14, 102, 80, 0.18);
   background: rgba(14, 102, 80, 0.06);

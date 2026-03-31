@@ -45,13 +45,34 @@ describe('DemoDashboardComponent', () => {
     expect(component.getMaxChartValue([])).toBe(1);
   });
 
-  it('should update KPI stats when a calendar day is selected', () => {
+  it('should show SLA failed and pass counts for a failed incoming requests day', () => {
     const control = component.getActiveControl();
 
-    component.selectCalendarDay(control.id, 5);
+    component.selectCalendarDay(control.id, 29);
 
-    expect(component.getDisplayStats(control)[0].value).toBe('5 Mar 2026');
-    expect(component.getDisplayStats(control)[1].value).toBe('Passed');
+    expect(component.getDisplayStats(control)[0].value).toBe('29 Mar 2026');
+    expect(component.getDisplayStats(control)[1].label).toBe('SLA Failed Count');
+    expect(component.getDisplayStats(control)[2].label).toBe('SLA Pass Count');
+  });
+
+  it('should show SLA pass count for a passed incoming requests day', () => {
+    const control = component.getActiveControl();
+
+    component.selectCalendarDay(control.id, 30);
+
+    expect(component.getDisplayStats(control)[0].value).toBe('30 Mar 2026');
+    expect(component.getDisplayStats(control)[1].label).toBe('SLA Pass Count');
+  });
+
+  it('should show invoice-loan recon KPIs for a failed supply chain day', () => {
+    component.selectControl('supply');
+    const control = component.getActiveControl();
+
+    component.selectCalendarDay(control.id, 29);
+
+    expect(component.getDisplayStats(control)[0].value).toBe('29 Mar 2026');
+    expect(component.getDisplayStats(control)[1].label).toBe('Recon Failed');
+    expect(component.getDisplayStats(control)[2].label).toBe('Recon Passed');
   });
 
   it('should move the calendar month backward', () => {

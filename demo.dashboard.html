@@ -61,6 +61,9 @@
         </div>
 
         <ng-template #favouriteSummary>
+          <!-- Favourite summary:
+               This block renders the saved favourites count in the left-side Favourite card.
+               If you want Favourite to show a different summary layout later, edit this block. -->
           <div class="tminus-grid favourite-grid">
             <div class="tminus-pill favourite-summary">
               <span>Saved</span>
@@ -80,6 +83,8 @@
           <h2>{{ activeCategory.name }}</h2>
         </div>
         <div class="details-head-right">
+          <!-- "Show All" appears only when a pass/fail filter is active for the current parent.
+               If you want a permanent clear/reset button, change the `*ngIf` condition here. -->
           <button
             *ngIf="activeCategory.key !== 'favourite' && activeStatusFilterByCategory[activeCategory.key]"
             type="button"
@@ -107,6 +112,8 @@
             <div class="child-name-row">
               <h3>{{ control.name }}</h3>
 
+              <!-- Favourite star:
+                   This button adds/removes the control from the Favourite parent section. -->
               <button
                 type="button"
                 class="favorite-btn"
@@ -142,6 +149,9 @@
             </div>
 
             <div class="calendar-nav">
+              <!-- Calendar navigation:
+                   Previous/Next changes month view.
+                   Today resets to the demo snapshot date. -->
               <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
               <div class="calendar-month">{{ getMonthLabel(control.id) }}</div>
               <button type="button" class="calendar-nav-btn today-btn" (click)="resetCalendarToCurrentDate(control.id)">Today</button>
@@ -179,6 +189,9 @@
       </div>
 
       <ng-template #emptyState>
+        <!-- Empty state:
+             Favourite has its own message.
+             Filtered categories show a different reset hint. -->
         <div class="empty-state">
           <h3>No controls here yet</h3>
           <p *ngIf="activeCategory.key === 'favourite'; else filteredEmpty">
