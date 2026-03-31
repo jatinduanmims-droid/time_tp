@@ -1,5 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { DemoDashboardComponent } from './demo.dashboard';
+import { CreditControls } from '../../services/credit-controls';
+
+class CreditControlsMock {
+  getInvoiceLoanReport() {
+    return of([
+      {
+        CLIENT_NAME: 'BNP',
+        FILE_RECEIVED_DATE: '2026-03-29',
+        MASTER_RECON_FLAG: 'No'
+      },
+      {
+        CLIENT_NAME: 'BNP',
+        FILE_RECEIVED_DATE: '2026-03-29',
+        MASTER_RECON_FLAG: 'Yes'
+      },
+      {
+        CLIENT_NAME: 'ACME',
+        FILE_RECEIVED_DATE: '2026-03-30',
+        MASTER_RECON_FLAG: 'Yes'
+      }
+    ]);
+  }
+}
 
 describe('DemoDashboardComponent', () => {
   let component: DemoDashboardComponent;
@@ -21,7 +45,10 @@ describe('DemoDashboardComponent', () => {
     yesterday.setDate(today.getDate() - 1);
 
     await TestBed.configureTestingModule({
-      imports: [DemoDashboardComponent]
+      imports: [DemoDashboardComponent],
+      providers: [
+        { provide: CreditControls, useClass: CreditControlsMock }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(DemoDashboardComponent);
@@ -90,6 +117,16 @@ describe('DemoDashboardComponent', () => {
     expect(component.getDisplayStats(control)[0].value).toBe('29 Mar 2026');
     expect(component.getDisplayStats(control)[1].label).toBe('Recon Failed');
     expect(component.getDisplayStats(control)[2].label).toBe('Recon Passed');
+  });
+
+  it('should highlight supply chain dates that have real invoice-loan data', () => {
+    component.selectControl('supply');
+    const control = component.getActiveControl();
+    component.viewedMonthByControl[control.id] = '2026-03';
+
+    const datedCell = component.getCalendarDays(control).find((day) => day.dayNumber === 29);
+
+    expect(datedCell?.hasData).toBeTrue();
   });
 
   it('should move the calendar month backward', () => {

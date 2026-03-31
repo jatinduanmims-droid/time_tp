@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CreditControls, InvoiceLoan as InvoiceLoanRecord } from '../../services/credit-controls';
 
 // KPI cards in the control rows render from this shape.
 // HOW TO EDIT KPI CARDS:
@@ -49,7 +50,7 @@ interface DashboardCategory {
   templateUrl: './demo.dashboard.html',
   styleUrls: ['./demo.dashboard.scss']
 })
-export class DemoDashboardComponent {
+export class DemoDashboardComponent implements OnInit {
   // Snapshot label shown in the header pill.
   // LIVE DATE NOTE:
   // - This now follows the machine/system date automatically, so you do not need to update it manually every day.
@@ -270,6 +271,21 @@ export class DemoDashboardComponent {
   // Stores the clicked calendar day per child so KPIs can drill into that selected date.
   selectedCalendarDayByControl: Record<string, number | null> = {};
 
+  // LIVE SUPPLY CHAIN DATA SOURCE:
+  // - This map is filled from the same `CreditControls.getInvoiceLoanReport()` call used by `invoice-loan.ts`
+  // - Key format is `yyyy-MM-dd`
+  // - If you later need another control to use live daily data, copy this pattern:
+  //   1. fetch the source once in `ngOnInit()`
+  //   2. aggregate it into a date-keyed map
+  //   3. read that map from `getDisplayStats()`, `getDayStatus()`, and `hasCalendarData()`
+  supplyChainDailyKpisByDate = new Map<string, {
+    totalInvoices: number;
+    totalClients: number;
+    reconPassed: number;
+    reconFailed: number;
+    reconPercentage: number;
+  }>();
+
   // Stores the visible month per child calendar.
   // This is what powers Previous / Next month navigation.
   viewedMonthByControl: Record<string, string> = Object.fromEntries(
@@ -278,7 +294,7 @@ export class DemoDashboardComponent {
     )
   );
 
-  constructor() {
+  constructor(private credit: CreditControls) {
     this.controlSearchQueryByCategory = Object.fromEntries(
       this.categories.map((category) => [category.key, ''])
     );
@@ -286,6 +302,12 @@ export class DemoDashboardComponent {
     this.selectedControlIdsByCategory = Object.fromEntries(
       this.categories.map((category) => [category.key, []])
     );
+  }
+
+  // Original dashboard startup hook.
+  // We now load the live invoice-loan report here so Supply Chain Financing can show real KPI values.
+  ngOnInit(): void {
+    this.fetchSupplyChainInvoiceLoanData();
   }
 
   // Called when a user clicks a parent card.
@@ -657,6 +679,7 @@ export class DemoDashboardComponent {
     muted: boolean;
     fail: boolean;
     passed: boolean;
+    hasData: boolean;
     today: boolean;
     clickable: boolean;
     future: boolean;
@@ -672,6 +695,7 @@ export class DemoDashboardComponent {
       muted: true,
       fail: false,
       passed: false,
+      hasData: false,
       today: false,
       clickable: false,
       future: false,
@@ -684,12 +708,16 @@ export class DemoDashboardComponent {
       const status = future
         ? null
         : this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
+      const hasData = future
+        ? false
+        : this.hasCalendarData(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), day);
 
       cells.push({
         label: String(day),
         muted: false,
         fail: status === 'failed',
         passed: status === 'passed',
+        hasData,
         today: this.isToday(viewedMonth, day),
         clickable: !future,
         future,
@@ -789,8 +817,11 @@ export class DemoDashboardComponent {
 
     if (control.id === 'supply-chain-financing') {
       // Invoice-loan mapping rule:
-      // Anything below 100% Recon % is treated as failed.
-      // To change that business rule later, edit the return condition below.
+      // For live daily rows from the invoice-loan report:
+      // - Recon % = 100 -> passed
+      // - Recon % < 100 -> failed
+      // If there is no live day-level data yet, we fall back to the seeded demo pattern
+      // so the dashboard still has a usable pass/fail state.
       const invoiceLoanKpis = this.getSupplyChainInvoiceLoanKpis(year, monthIndex, day);
       return invoiceLoanKpis.reconPercentage === 100 ? 'passed' : 'failed';
     }
@@ -837,6 +868,18 @@ export class DemoDashboardComponent {
     return candidate.getTime() > this.getCurrentBusinessDate().getTime();
   }
 
+  // Calendar yellow-highlight helper.
+  // Right now this is mainly used by Supply Chain Financing:
+  // if a date exists in the live invoice-loan response, the calendar day gets a yellow "data available" style.
+  // To remove that yellow state later, delete the `hasData` class binding in HTML and this helper usage in `getCalendarDays()`.
+  private hasCalendarData(control: DashboardControl, year: number, monthIndex: number, day: number): boolean {
+    if (control.id !== 'supply-chain-financing') {
+      return false;
+    }
+
+    return this.supplyChainDailyKpisByDate.has(this.getDateKey(year, monthIndex, day));
+  }
+
   // CENTRAL DATE SOURCE FOR THE ORIGINAL DASHBOARD:
   // - This is the one place that decides what "today", "yesterday", the header snapshot label,
   //   the default month, and the reset-to-current-date action all mean.
@@ -860,9 +903,114 @@ export class DemoDashboardComponent {
     });
   }
 
+  // Shared yyyy-MM-dd key builder for any day-level KPI map.
+  // If another control later needs date-keyed live data, reuse this helper.
+  private getDateKey(year: number, monthIndex: number, day: number): string {
+    return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
   // Small deterministic hash used by `getDayStatus()` to make demo month data repeatable.
   private hashValue(input: string): number {
     return Array.from(input).reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
+  }
+
+  // Load the same invoice-loan source already used by the dedicated Supply Chain screen.
+  // This gives the dashboard live Supply Chain KPI values without duplicating backend endpoints.
+  // HOW TO EDIT:
+  // - If the invoice-loan service path changes, update the import at the top of this file.
+  // - If the source starts returning a better business status flag, update `buildSupplyChainDailyKpis()` and `getDayStatus()`.
+  private fetchSupplyChainInvoiceLoanData(): void {
+    this.credit.getInvoiceLoanReport().subscribe({
+      next: (rows) => {
+        this.supplyChainDailyKpisByDate = this.buildSupplyChainDailyKpis(rows);
+      },
+      error: (err) => {
+        console.error('Supply chain invoice-loan load error', err);
+      }
+    });
+  }
+
+  // Aggregate the raw invoice-loan response into one KPI object per file-received date.
+  // Yellow calendar highlighting is based on the existence of a date key in this map.
+  private buildSupplyChainDailyKpis(rows: InvoiceLoanRecord[]): Map<string, {
+    totalInvoices: number;
+    totalClients: number;
+    reconPassed: number;
+    reconFailed: number;
+    reconPercentage: number;
+  }> {
+    const byDate = new Map<string, {
+      totalInvoices: number;
+      clients: Set<string>;
+      reconPassed: number;
+      reconFailed: number;
+    }>();
+
+    for (const row of rows) {
+      const receivedDate = this.normalizeInvoiceLoanDate(row.FILE_RECEIVED_DATE);
+
+      if (!receivedDate) {
+        continue;
+      }
+
+      if (!byDate.has(receivedDate)) {
+        byDate.set(receivedDate, {
+          totalInvoices: 0,
+          clients: new Set<string>(),
+          reconPassed: 0,
+          reconFailed: 0
+        });
+      }
+
+      const bucket = byDate.get(receivedDate)!;
+      bucket.totalInvoices += 1;
+      bucket.clients.add(this.normalizeInvoiceLoanText(row.CLIENT_NAME));
+
+      if (this.isInvoiceLoanYes(row.MASTER_RECON_FLAG)) {
+        bucket.reconPassed += 1;
+      } else {
+        bucket.reconFailed += 1;
+      }
+    }
+
+    return new Map(
+      Array.from(byDate.entries()).map(([dateKey, bucket]) => {
+        const reconPercentage = bucket.totalInvoices
+          ? Math.round((bucket.reconPassed / bucket.totalInvoices) * 100)
+          : 0;
+
+        return [dateKey, {
+          totalInvoices: bucket.totalInvoices,
+          totalClients: bucket.clients.size,
+          reconPassed: bucket.reconPassed,
+          reconFailed: bucket.reconFailed,
+          reconPercentage
+        }];
+      })
+    );
+  }
+
+  // Keep the invoice-loan date parsing identical to the dedicated Supply Chain screen.
+  private normalizeInvoiceLoanDate(value: unknown): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) {
+      return String(value);
+    }
+
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  // Keep invoice-loan grouping stable even when the source has blank or padded text fields.
+  private normalizeInvoiceLoanText(value: unknown): string {
+    return String(value ?? '').trim();
+  }
+
+  private isInvoiceLoanYes(value: unknown): boolean {
+    return String(value ?? '').trim().toLowerCase() === 'yes';
   }
 
   // Preview/original demo mapping for the control linked to Jatin_dashboard KPIs.
@@ -923,8 +1071,17 @@ export class DemoDashboardComponent {
     reconFailed: number;
     reconPercentage: number;
   } {
-    // This is demo seed data for the original dashboard.
-    // Replace these values with real invoice-loan analytics when API/service integration is ready.
+    // LIVE INVOICE-LOAN MAPPING:
+    // - First check whether the invoice-loan report has a real KPI bucket for this date
+    // - If yes, use that live daily KPI object
+    // - If not, fall back to the seeded demo data so the dashboard still works before historical coverage is complete
+    const liveDailyKpis = this.supplyChainDailyKpisByDate.get(this.getDateKey(year, monthIndex, day));
+
+    if (liveDailyKpis) {
+      return liveDailyKpis;
+    }
+
+    // This is fallback demo seed data for dates that do not yet exist in the live invoice-loan response.
     const presetByDate: Record<string, {
       totalInvoices: number;
       totalClients: number;
