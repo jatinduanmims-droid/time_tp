@@ -590,6 +590,9 @@
 
 .stat:disabled {
   cursor: default;
+  opacity: 1;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
 }
 
 .stat-link {
