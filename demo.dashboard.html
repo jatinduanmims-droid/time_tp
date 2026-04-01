@@ -199,11 +199,17 @@
                  To remove the KPI cards completely, delete this whole `<div class="stats-grid">...</div>` block.
                  To remove only one label/value/note line, edit the markup inside this block or adjust `getDisplayStats()` in TS. -->
             <div class="stats-grid">
-              <div class="stat" *ngFor="let stat of getDisplayStats(control)">
+              <button
+                type="button"
+                class="stat"
+                *ngFor="let stat of getDisplayStats(control)"
+                [class.stat-link]="canOpenControlPage(control, stat)"
+                [disabled]="!canOpenControlPage(control, stat)"
+                (click)="canOpenControlPage(control, stat) && openControlDrilldown(control)">
                 <span>{{ stat.label }}</span>
                 <strong>{{ stat.value }}</strong>
                 <small>{{ stat.note }}</small>
-              </div>
+              </button>
             </div>
           </div>
 

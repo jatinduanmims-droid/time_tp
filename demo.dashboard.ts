@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CreditControls, InvoiceLoan as InvoiceLoanRecord, MCAAtlas2Report } from '../../services/credit-controls';
 
 // KPI cards in the control rows render from this shape.
@@ -307,7 +308,7 @@ export class DemoDashboardComponent implements OnInit {
     )
   );
 
-  constructor(private credit: CreditControls) {
+  constructor(private credit: CreditControls, private router: Router) {
     this.controlSearchQueryByCategory = Object.fromEntries(
       this.categories.map((category) => [category.key, ''])
     );
@@ -522,6 +523,34 @@ export class DemoDashboardComponent implements OnInit {
 
   hasSelectedControls(category: DashboardCategory): boolean {
     return (this.selectedControlIdsByCategory[category.key] ?? []).length > 0;
+  }
+
+  // Decides whether a KPI card should act like a drilldown link to the dedicated control page.
+  // Right now we only make the "Selected Day" KPI clickable because that is the clearest date context.
+  // To make more KPI cards clickable later, expand this condition.
+  canOpenControlPage(control: DashboardControl, stat: ControlStat): boolean {
+    return stat.label === 'Selected Day' && ['supply-chain-financing', 'legal-entity-validation'].includes(control.id);
+  }
+
+  // Click handler for KPI-card drilldown into the dedicated control pages.
+  // HOW TO EDIT:
+  // - Route paths live in `getControlDrilldownRoute()`
+  // - The date passed to the target page comes from the currently selected calendar day
+  // - If you want drilldown to pass more filters later, add more query params here
+  openControlDrilldown(control: DashboardControl): void {
+    const route = this.getControlDrilldownRoute(control.id);
+    const selectedDay = this.selectedCalendarDayByControl[control.id];
+
+    if (!route || !selectedDay) {
+      return;
+    }
+
+    const viewedMonth = this.getViewedMonth(control.id);
+    const date = this.getDateKey(viewedMonth.getFullYear(), viewedMonth.getMonth(), selectedDay);
+
+    this.router.navigate([route], {
+      queryParams: { date }
+    });
   }
 
   // Count pill helper for the left-side parent cards.
@@ -900,6 +929,20 @@ export class DemoDashboardComponent implements OnInit {
     const visibleControls = this.getVisibleControls(this.categories.find((category) => category.key === categoryKey) ?? this.categories[0]);
 
     this.activeControlId = visibleControls[0]?.id ?? '';
+  }
+
+  // Maps a dashboard control id to the dedicated page route.
+  // If your real Angular route path differs from these defaults, edit the strings here.
+  private getControlDrilldownRoute(controlId: string): string | null {
+    if (controlId === 'supply-chain-financing') {
+      return '/invoice-loan';
+    }
+
+    if (controlId === 'legal-entity-validation') {
+      return '/mca-atlas2-recon';
+    }
+
+    return null;
   }
 
   // DEMO STATUS GENERATOR:

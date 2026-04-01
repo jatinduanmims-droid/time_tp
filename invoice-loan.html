@@ -151,6 +151,7 @@
   <section class="filter-bar">
     <div class="filter-info">
       Search, sort, and review grouped invoice-loan rows.
+      <span *ngIf="drilldownDate">Showing dashboard drilldown for {{ drilldownDate }}</span>
     </div>
     <button class="clear-btn" type="button" (click)="clearFilter()">Clear Filter</button>
   </section>

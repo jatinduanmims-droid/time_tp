@@ -6,6 +6,7 @@ import { InvoiceLoanDetailComponent, InvoiceLoanDetailRecord } from './invoice-l
 import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 
 export type InvoiceLoanSummaryRow = {
   groupKey: string;
@@ -39,6 +40,7 @@ export class InvoiceLoanComponent implements OnInit {
 
   invoiceLoans: InvoiceLoanSummaryRow[] = [];
   rawInvoiceLoans: InvoiceLoanRecord[] = [];
+  allRawInvoiceLoans: InvoiceLoanRecord[] = [];
   loading = true;
   today = new Date();
   latestReceivedDate: string | null = null;
@@ -47,6 +49,7 @@ export class InvoiceLoanComponent implements OnInit {
   private detailRowsByGroup = new Map<string, InvoiceLoanDetailRecord[]>();
   clientOptions: string[] = ['All Clients'];
   selectedClient = 'All Clients';
+  drilldownDate: string | null = null;
 
   totalInvoices = 0;
   totalClients = 0;
@@ -73,10 +76,21 @@ export class InvoiceLoanComponent implements OnInit {
     { field: 'MASTER_RECON_FLAG', header: 'Master Recon Flag', align: 'center' },
   ];
 
-  constructor(private credit: CreditControls) {}
+  constructor(
+    private credit: CreditControls,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   // Load the invoice-loan dataset once when the page opens so both the summary grid and detail modal use the same response.
   ngOnInit(): void {
+    // Drilldown date comes from the dashboard query param.
+    // To remove dashboard-to-page date drilldown later, delete this subscription and the filter helpers below.
+    this.route.queryParamMap.subscribe((params) => {
+      this.drilldownDate = params.get('date');
+      this.applyInvoiceLoanDateFilter();
+    });
+
     this.fetchInvoiceLoans();
   }
 
@@ -86,11 +100,8 @@ export class InvoiceLoanComponent implements OnInit {
 
     this.credit.getInvoiceLoanReport().subscribe({
       next: (data) => {
-        this.rawInvoiceLoans = data;
-        this.invoiceLoans = this.buildSummaryRows(data);
-        this.totalRecords = this.invoiceLoans.length;
-        this.latestReceivedDate = this.invoiceLoans[0]?.FILE_RECEIVED_DATE ?? null;
-        this.buildAnalytics();
+        this.allRawInvoiceLoans = data;
+        this.applyInvoiceLoanDateFilter();
         this.tableFirst = 0;
         this.loading = false;
       },
@@ -111,6 +122,17 @@ export class InvoiceLoanComponent implements OnInit {
   clearFilter(): void {
     this.dataTable?.clear();
     this.tableFirst = 0;
+
+    // If the page was opened from the dashboard with a specific date, Clear Filter also removes that date drilldown.
+    if (this.drilldownDate) {
+      this.drilldownDate = null;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { date: null },
+        queryParamsHandling: 'merge'
+      });
+      this.applyInvoiceLoanDateFilter();
+    }
   }
 
   // Update the line chart whenever the user changes the client dropdown above the analytics section.
@@ -160,6 +182,22 @@ export class InvoiceLoanComponent implements OnInit {
     this.buildReconChart();
     this.buildTrendChart();
     this.refreshChartLayout();
+  }
+
+  // Apply the optional dashboard date drilldown to the invoice-loan page.
+  // HOW TO EDIT:
+  // - If you want dashboard drilldown to filter a different field, change the `normalizeDate(record.FILE_RECEIVED_DATE)` comparison below.
+  // - If you want the page to keep analytics unfiltered but only filter the table, move this logic so it only changes `invoiceLoans`.
+  private applyInvoiceLoanDateFilter(): void {
+    const sourceRows = this.drilldownDate
+      ? this.allRawInvoiceLoans.filter((record) => this.normalizeDate(record.FILE_RECEIVED_DATE) === this.drilldownDate)
+      : [...this.allRawInvoiceLoans];
+
+    this.rawInvoiceLoans = sourceRows;
+    this.invoiceLoans = this.buildSummaryRows(sourceRows);
+    this.totalRecords = this.invoiceLoans.length;
+    this.latestReceivedDate = this.invoiceLoans[0]?.FILE_RECEIVED_DATE ?? null;
+    this.buildAnalytics();
   }
 
   // Build the doughnut chart that shows how many grouped rows passed or failed master recon.
