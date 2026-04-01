@@ -23,6 +23,16 @@ class CreditControlsMock {
       }
     ]);
   }
+
+  getMCAAtlas2Report() {
+    return of([
+      { COMPARE_COUNTRY_OF_BUSINESS: 'MATCH' },
+      { COMPARE_COUNTRY_OF_BUSINESS: 'MATCH' },
+      { COMPARE_COUNTRY_OF_BUSINESS: 'DIFFERENT' },
+      { COMPARE_COUNTRY_OF_BUSINESS: 'EMPTY IN A2' },
+      { COMPARE_COUNTRY_OF_BUSINESS: 'BOTH EMPTY' }
+    ]);
+  }
 }
 
 describe('DemoDashboardComponent', () => {
@@ -119,12 +129,38 @@ describe('DemoDashboardComponent', () => {
     expect(component.getDisplayStats(control)[2].label).toBe('Recon Passed');
   });
 
+  it('should map MCA recon KPIs into legal entity validation', () => {
+    component.selectControl('credit');
+    const control = component.getVisibleControls(component.getActiveCategory()).find(
+      (item) => item.id === 'legal-entity-validation'
+    )!;
+
+    expect(control.stats[0].label).toBe('Match');
+    expect(control.stats[0].value).toBe('2');
+    expect(control.stats[1].label).toBe('Different');
+    expect(control.stats[1].value).toBe('1');
+    expect(control.stats[2].label).toBe('Empty In A2');
+    expect(control.stats[2].value).toBe('1');
+  });
+
   it('should highlight supply chain dates that have real invoice-loan data', () => {
     component.selectControl('supply');
     const control = component.getActiveControl();
     component.viewedMonthByControl[control.id] = '2026-03';
 
     const datedCell = component.getCalendarDays(control).find((day) => day.dayNumber === 29);
+
+    expect(datedCell?.hasData).toBeTrue();
+  });
+
+  it('should highlight the current date for MCA snapshot-backed legal entity data', () => {
+    component.selectControl('credit');
+    const control = component.getVisibleControls(component.getActiveCategory()).find(
+      (item) => item.id === 'legal-entity-validation'
+    )!;
+    component.viewedMonthByControl[control.id] = monthKey(today);
+
+    const datedCell = component.getCalendarDays(control).find((day) => day.dayNumber === today.getDate());
 
     expect(datedCell?.hasData).toBeTrue();
   });

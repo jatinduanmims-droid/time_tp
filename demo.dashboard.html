@@ -225,15 +225,31 @@
 
             <div class="calendar-nav">
               <!-- Calendar navigation:
-                   Previous/Next changes month view.
+                   Month/year selection is handled by the dropdowns below.
                    Today resets to the live system date from `getCurrentBusinessDate()` in the TS file.
                    If you later want Today to point to a fixed reporting date, change that TS helper in one place.
-                   To remove any one of these buttons, delete that button line directly. -->
-              <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, -1)">Previous</button>
-              <!-- To remove the month label, delete the `<div class="calendar-month">...</div>` line below. -->
-              <div class="calendar-month">{{ getMonthLabel(control.id) }}</div>
+                   To remove the month dropdown, delete the whole `<select class="calendar-select"...>...</select>` block.
+                   To remove the year dropdown, delete the second `<select class="calendar-select"...>...</select>` block.
+                   To remove Today, delete the `<button ...>Today</button>` line directly. -->
+              <select
+                class="calendar-select"
+                [ngModel]="getViewedMonthIndex(control.id)"
+                (ngModelChange)="setCalendarMonth(control.id, $event)">
+                <option *ngFor="let monthOption of getMonthOptions()" [ngValue]="monthOption.value">
+                  {{ monthOption.label }}
+                </option>
+              </select>
+
+              <select
+                class="calendar-select"
+                [ngModel]="getViewedYear(control.id)"
+                (ngModelChange)="setCalendarYear(control.id, $event)">
+                <option *ngFor="let yearOption of getYearOptions()" [ngValue]="yearOption">
+                  {{ yearOption }}
+                </option>
+              </select>
+
               <button type="button" class="calendar-nav-btn today-btn" (click)="resetCalendarToCurrentDate(control.id)">Today</button>
-              <button type="button" class="calendar-nav-btn" (click)="shiftCalendarMonth(control.id, 1)">Next</button>
             </div>
 
             <!-- Weekday header:

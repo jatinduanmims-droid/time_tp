@@ -661,9 +661,9 @@
 }
 
 .calendar-nav {
-  /* Month switcher row above the calendar grid. */
+  /* Month/year selector row above the calendar grid. */
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(78px, auto) minmax(74px, auto);
   gap: 4px;
   align-items: center;
 }
@@ -686,11 +686,27 @@
   background: rgba(14, 102, 80, 0.06);
 }
 
-.calendar-month {
-  text-align: center;
+.calendar-select {
+  /* Month/year dropdown styling.
+     To make the dropdowns wider/narrower, start with `padding` and the `calendar-nav` column sizes above. */
+  min-width: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
   color: var(--ink-700);
-  font-size: 0.58rem;
-  font-weight: 700;
+  padding: 3px 22px 3px 8px;
+  font: inherit;
+  font-size: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-500) 50%),
+    linear-gradient(135deg, var(--ink-500) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 8px) 50%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
 }
 
 .weekdays,

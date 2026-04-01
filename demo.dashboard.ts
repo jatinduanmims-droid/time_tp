@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CreditControls, InvoiceLoan as InvoiceLoanRecord } from '../../services/credit-controls';
+import { CreditControls, InvoiceLoan as InvoiceLoanRecord, MCAAtlas2Report } from '../../services/credit-controls';
 
 // KPI cards in the control rows render from this shape.
 // HOW TO EDIT KPI CARDS:
@@ -286,6 +286,19 @@ export class DemoDashboardComponent implements OnInit {
     reconPercentage: number;
   }>();
 
+  // LIVE MCA RECON KPI SOURCE:
+  // - These values come from the same `CreditControls.getMCAAtlas2Report()` source used by `mca-atlas2-recon.ts`
+  // - They are current snapshot KPIs, not historical daily buckets
+  // - If MCA later exposes a real report date/history field, this can be upgraded to a date-keyed map like Supply Chain
+  mcaReconSnapshot = {
+    matchCount: 0,
+    differentCount: 0,
+    emptyInA2Count: 0,
+    bothEmptyCount: 0,
+    totalRows: 0,
+    mismatchShare: 0
+  };
+
   // Stores the visible month per child calendar.
   // This is what powers Previous / Next month navigation.
   viewedMonthByControl: Record<string, string> = Object.fromEntries(
@@ -308,6 +321,7 @@ export class DemoDashboardComponent implements OnInit {
   // We now load the live invoice-loan report here so Supply Chain Financing can show real KPI values.
   ngOnInit(): void {
     this.fetchSupplyChainInvoiceLoanData();
+    this.fetchMcaReconData();
   }
 
   // Called when a user clicks a parent card.
@@ -566,12 +580,73 @@ export class DemoDashboardComponent implements OnInit {
     this.selectedCalendarDayByControl[controlId] = null;
   }
 
-  // Visible month label shown between Previous / Next buttons.
+  // Visible month label shown in the calendar header.
   getMonthLabel(controlId: string): string {
     return this.getViewedMonth(controlId).toLocaleDateString('en-US', {
       month: 'long',
       year: 'numeric'
     });
+  }
+
+  // Month dropdown options used by the calendar header.
+  // To change display language or month labels, edit the array returned here.
+  getMonthOptions(): Array<{ value: number; label: string }> {
+    return [
+      { value: 0, label: 'January' },
+      { value: 1, label: 'February' },
+      { value: 2, label: 'March' },
+      { value: 3, label: 'April' },
+      { value: 4, label: 'May' },
+      { value: 5, label: 'June' },
+      { value: 6, label: 'July' },
+      { value: 7, label: 'August' },
+      { value: 8, label: 'September' },
+      { value: 9, label: 'October' },
+      { value: 10, label: 'November' },
+      { value: 11, label: 'December' }
+    ];
+  }
+
+  // Year dropdown options used by the calendar header.
+  // To show a wider/narrower range of years, change the `- 3` / `+ 3` range here.
+  getYearOptions(): number[] {
+    const currentYear = this.getCurrentBusinessDate().getFullYear();
+
+    return Array.from({ length: 7 }, (_, index) => currentYear - 3 + index);
+  }
+
+  // Reads the month number currently being shown for one control calendar.
+  // Used by the month dropdown so the correct option stays selected.
+  getViewedMonthIndex(controlId: string): number {
+    return this.getViewedMonth(controlId).getMonth();
+  }
+
+  // Reads the year currently being shown for one control calendar.
+  // Used by the year dropdown so the correct option stays selected.
+  getViewedYear(controlId: string): number {
+    return this.getViewedMonth(controlId).getFullYear();
+  }
+
+  // Calendar month dropdown handler.
+  // If you later replace the dropdown with another UI, this is the function to swap out.
+  setCalendarMonth(controlId: string, monthIndex: number): void {
+    const viewedMonth = this.getViewedMonth(controlId);
+    viewedMonth.setMonth(monthIndex);
+    viewedMonth.setDate(1);
+
+    this.viewedMonthByControl[controlId] = this.getMonthKey(viewedMonth);
+    this.selectedCalendarDayByControl[controlId] = null;
+  }
+
+  // Calendar year dropdown handler.
+  // This keeps the same month selected and only changes the year.
+  setCalendarYear(controlId: string, year: number): void {
+    const viewedMonth = this.getViewedMonth(controlId);
+    viewedMonth.setFullYear(year);
+    viewedMonth.setDate(1);
+
+    this.viewedMonthByControl[controlId] = this.getMonthKey(viewedMonth);
+    this.selectedCalendarDayByControl[controlId] = null;
   }
 
   // KPI DRILL-DOWN:
@@ -650,6 +725,35 @@ export class DemoDashboardComponent implements OnInit {
         { label: 'Total Invoices', value: `${invoiceLoanKpis.totalInvoices}`, note: 'Mapped from totalInvoices' },
         { label: 'Total Clients', value: `${invoiceLoanKpis.totalClients}`, note: 'Mapped from totalClients' },
         { label: 'Recon %', value: `${invoiceLoanKpis.reconPercentage}%`, note: 'Mapped from reconPercentage' }
+      ];
+    }
+
+    if (control.id === 'legal-entity-validation') {
+      // ORIGINAL-FILE MCA MAPPING:
+      // Legal Entity Validation is mapped to the live MCA Atlas-2 recon snapshot.
+      // HOW TO EDIT:
+      // - To change the live source fields, edit `fetchMcaReconData()` and `buildMcaReconSnapshot()`
+      // - To change which KPI cards show on calendar click, edit the returned arrays here
+      // NOTE:
+      // - The MCA source currently gives us a current snapshot rather than daily history,
+      //   so a clicked day still shows the same live snapshot KPIs until date-level history is available.
+      const selectedDateLabel = `${selectedDay} ${viewedMonth.toLocaleDateString('en-US', { month: 'short' })} ${viewedMonth.getFullYear()}`;
+      const isFailed = this.getDayStatus(control, viewedMonth.getFullYear(), viewedMonth.getMonth(), selectedDay) === 'failed';
+
+      if (isFailed) {
+        return [
+          { label: 'Selected Day', value: selectedDateLabel, note: 'Using live MCA recon snapshot' },
+          { label: 'Different', value: `${this.mcaReconSnapshot.differentCount}`, note: 'Mapped from DIFFERENT' },
+          { label: 'Empty In A2', value: `${this.mcaReconSnapshot.emptyInA2Count}`, note: 'Mapped from EMPTY IN A2' },
+          { label: 'Mismatch Share', value: `${this.mcaReconSnapshot.mismatchShare}%`, note: 'Derived from mismatch rows' }
+        ];
+      }
+
+      return [
+        { label: 'Selected Day', value: selectedDateLabel, note: 'Using live MCA recon snapshot' },
+        { label: 'Match', value: `${this.mcaReconSnapshot.matchCount}`, note: 'Mapped from MATCH' },
+        { label: 'Both Empty', value: `${this.mcaReconSnapshot.bothEmptyCount}`, note: 'Mapped from BOTH EMPTY' },
+        { label: 'Loaded Rows', value: `${this.mcaReconSnapshot.totalRows}`, note: 'Current MCA recon rows' }
       ];
     }
 
@@ -826,6 +930,15 @@ export class DemoDashboardComponent implements OnInit {
       return invoiceLoanKpis.reconPercentage === 100 ? 'passed' : 'failed';
     }
 
+    if (control.id === 'legal-entity-validation') {
+      // MCA recon mapping rule:
+      // We currently treat any non-zero mismatch workload as failed.
+      // If the business later defines a better threshold, change this return condition.
+      return this.mcaReconSnapshot.differentCount > 0 || this.mcaReconSnapshot.emptyInA2Count > 0
+        ? 'failed'
+        : 'passed';
+    }
+
     const threshold = control.statusLabel === 'Needs Focus'
       ? 34
       : control.statusLabel === 'Watchlist'
@@ -873,11 +986,23 @@ export class DemoDashboardComponent implements OnInit {
   // if a date exists in the live invoice-loan response, the calendar day gets a yellow "data available" style.
   // To remove that yellow state later, delete the `hasData` class binding in HTML and this helper usage in `getCalendarDays()`.
   private hasCalendarData(control: DashboardControl, year: number, monthIndex: number, day: number): boolean {
-    if (control.id !== 'supply-chain-financing') {
-      return false;
+    if (control.id === 'supply-chain-financing') {
+      return this.supplyChainDailyKpisByDate.has(this.getDateKey(year, monthIndex, day));
     }
 
-    return this.supplyChainDailyKpisByDate.has(this.getDateKey(year, monthIndex, day));
+    if (control.id === 'legal-entity-validation') {
+      // MCA currently gives us a live snapshot rather than daily historical rows.
+      // So for the dashboard calendar we highlight the current business date in yellow
+      // to show "data available today" without pretending we have older day-by-day history.
+      const currentBusinessDate = this.getCurrentBusinessDate();
+
+      return year === currentBusinessDate.getFullYear()
+        && monthIndex === currentBusinessDate.getMonth()
+        && day === currentBusinessDate.getDate()
+        && this.mcaReconSnapshot.totalRows > 0;
+    }
+
+    return false;
   }
 
   // CENTRAL DATE SOURCE FOR THE ORIGINAL DASHBOARD:
@@ -928,6 +1053,82 @@ export class DemoDashboardComponent implements OnInit {
         console.error('Supply chain invoice-loan load error', err);
       }
     });
+  }
+
+  // Load the same MCA source already used by the dedicated legal-entity recon screen.
+  // This keeps Legal Entity Validation aligned with the live MCA dashboard KPIs.
+  // HOW TO EDIT:
+  // - If the MCA source fields change, update `buildMcaReconSnapshot()`
+  // - If you later get date-level MCA history, convert this snapshot object into a date-keyed map
+  private fetchMcaReconData(): void {
+    this.credit.getMCAAtlas2Report().subscribe({
+      next: (rows) => {
+        this.mcaReconSnapshot = this.buildMcaReconSnapshot(rows);
+        this.applyMcaReconStatsToControl();
+      },
+      error: (err) => {
+        console.error('MCA recon load error', err);
+      }
+    });
+  }
+
+  // Aggregate the raw MCA rows into the same KPI buckets shown on the dedicated MCA screen.
+  private buildMcaReconSnapshot(rows: MCAAtlas2Report[]): {
+    matchCount: number;
+    differentCount: number;
+    emptyInA2Count: number;
+    bothEmptyCount: number;
+    totalRows: number;
+    mismatchShare: number;
+  } {
+    let matchCount = 0;
+    let differentCount = 0;
+    let emptyInA2Count = 0;
+    let bothEmptyCount = 0;
+
+    for (const row of rows) {
+      const flag = this.normalizeMcaFlagValue(row);
+
+      if (flag === 'MATCH') {
+        matchCount += 1;
+      } else if (flag === 'DIFFERENT') {
+        differentCount += 1;
+      } else if (flag === 'EMPTY IN A2') {
+        emptyInA2Count += 1;
+      } else if (flag === 'BOTH EMPTY') {
+        bothEmptyCount += 1;
+      }
+    }
+
+    const totalRows = rows.length;
+    const mismatchRows = differentCount + emptyInA2Count;
+    const mismatchShare = totalRows ? Math.round((mismatchRows / totalRows) * 100) : 0;
+
+    return {
+      matchCount,
+      differentCount,
+      emptyInA2Count,
+      bothEmptyCount,
+      totalRows,
+      mismatchShare
+    };
+  }
+
+  // Push the live MCA snapshot into the default Legal Entity Validation cards shown before a calendar date is clicked.
+  private applyMcaReconStatsToControl(): void {
+    const legalEntityControl = this.categories
+      .flatMap((category) => category.controls)
+      .find((control) => control.id === 'legal-entity-validation');
+
+    if (!legalEntityControl) {
+      return;
+    }
+
+    legalEntityControl.stats = [
+      { label: 'Match', value: `${this.mcaReconSnapshot.matchCount}`, note: 'Mapped from MATCH' },
+      { label: 'Different', value: `${this.mcaReconSnapshot.differentCount}`, note: 'Mapped from DIFFERENT' },
+      { label: 'Empty In A2', value: `${this.mcaReconSnapshot.emptyInA2Count}`, note: 'Mapped from EMPTY IN A2' }
+    ];
   }
 
   // Aggregate the raw invoice-loan response into one KPI object per file-received date.
@@ -1011,6 +1212,13 @@ export class DemoDashboardComponent implements OnInit {
 
   private isInvoiceLoanYes(value: unknown): boolean {
     return String(value ?? '').trim().toLowerCase() === 'yes';
+  }
+
+  // Keep MCA recon flag parsing identical to the dedicated MCA Atlas-2 screen.
+  private normalizeMcaFlagValue(row: MCAAtlas2Report): string {
+    return String((row as Record<string, unknown>)['COMPARE_COUNTRY_OF_BUSINESS'] ?? '')
+      .trim()
+      .toUpperCase();
   }
 
   // Preview/original demo mapping for the control linked to Jatin_dashboard KPIs.
