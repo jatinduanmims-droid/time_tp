@@ -6,6 +6,7 @@ import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
 import { Table, TableModule } from 'primeng/table';
 import { EmailDetailComponent } from '../email-detail/email-detail.component';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-jatin-dashboard',
@@ -22,13 +23,14 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   // =========================
   // DEMO STABLE DATE
   // =========================
-  readonly targetDate: Date = new Date('2025-09-26');
+  targetDate: Date = new Date();
 
   // =========================
   // DATA
   // =========================
   batchEmails: EmailDetail[] = [];
   displayedEmails: EmailDetail[] = [];
+  dashboardDrilldownDate: string | null = null;
   activeFilter: string | null = null;
   loading = false;
   selectedRow?: EmailDetail;
@@ -82,7 +84,11 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     { field: 'SLAMEET', header: 'SLA Met', align: 'center' }
   ];
 
-  constructor(private emailSrv: EmailService) {}
+  constructor(
+    private emailSrv: EmailService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   private applySavedRowUpdate(event: { rowId: number; changes: Partial<EmailDetail> & Record<string, unknown> }): void {
     const normalizeUpdatedEmail = (email: EmailDetail): EmailDetail => {
@@ -126,6 +132,28 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Dashboard drilldown support:
+    // when `demo.dashboard` opens this page with `?date=YYYY-MM-DD`,
+    // we use that date as the target date and filter the table to that day.
+    this.route.queryParamMap.subscribe((params) => {
+      const dateParam = params.get('date');
+
+      this.dashboardDrilldownDate = dateParam;
+      if (dateParam) {
+        const parsed = new Date(dateParam);
+        if (!Number.isNaN(parsed.getTime())) {
+          parsed.setHours(0, 0, 0, 0);
+          this.targetDate = parsed;
+        }
+      } else {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        this.targetDate = today;
+      }
+
+      this.applyDashboardDateFilter();
+    });
+
     this.loadBatchEmails();
   }
 
@@ -163,6 +191,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
         this.displayedEmails = [...this.batchEmails];
         this.totalEmails = this.batchEmails.length;
+        this.applyDashboardDateFilter();
         this.ensureValidTablePage();
         this.restoreTablePageIfNeeded();
 
@@ -357,8 +386,15 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
     this.activeFilter = type;
     const target = this.targetDate.toDateString();
+    const baseRows = this.dashboardDrilldownDate
+      ? this.batchEmails.filter((email) => {
+          const receivedDate = new Date(email.EMAIL_RECEIVEDTIME);
+          receivedDate.setHours(0, 0, 0, 0);
+          return receivedDate.toISOString().slice(0, 10) === this.dashboardDrilldownDate;
+        })
+      : this.batchEmails;
 
-    this.displayedEmails = this.batchEmails.filter(e => {
+    this.displayedEmails = baseRows.filter(e => {
 
       switch (type) {
 
@@ -407,9 +443,17 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   clearFilter(): void {
     this.activeFilter = null;
-    this.displayedEmails = [...this.batchEmails];
-    this.totalEmails = this.displayedEmails.length;
+    this.applyDashboardDateFilter();
     this.ensureValidTablePage();
+
+    if (this.dashboardDrilldownDate) {
+      this.dashboardDrilldownDate = null;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { date: null },
+        queryParamsHandling: 'merge'
+      });
+    }
   }
 
   openDetail(row: EmailDetail): void {
@@ -478,6 +522,35 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
       this.dataTable.rows = this.tableRows;
       this.dataTable.first = first;
     }
+  }
+
+  // Apply the optional dashboard date drilldown to the main table.
+  // HOW TO EDIT:
+  // - If you want the dashboard drilldown to affect KPIs only and not the table, remove this filter from `displayedEmails`.
+  // - If you want to filter by a different email date field, change the `EMAIL_RECEIVEDTIME` comparison here.
+  // - If you want to stop the dashboard from passing a date at all, edit `getControlDrilldownRoute()` / `openControlDrilldown()`
+  //   in `demo.dashboard.ts` instead of changing this page logic.
+  private applyDashboardDateFilter(): void {
+    if (!this.batchEmails.length) {
+      this.displayedEmails = [];
+      this.totalEmails = 0;
+      return;
+    }
+
+    if (!this.dashboardDrilldownDate) {
+      if (!this.activeFilter) {
+        this.displayedEmails = [...this.batchEmails];
+        this.totalEmails = this.displayedEmails.length;
+      }
+      return;
+    }
+
+    this.displayedEmails = this.batchEmails.filter((email) => {
+      const receivedDate = new Date(email.EMAIL_RECEIVEDTIME);
+      receivedDate.setHours(0, 0, 0, 0);
+      return receivedDate.toISOString().slice(0, 10) === this.dashboardDrilldownDate;
+    });
+    this.totalEmails = this.displayedEmails.length;
   }
 
   private refreshChartLayout(): void {

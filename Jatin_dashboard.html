@@ -162,9 +162,13 @@
     </article>
   </section>
 
-  <section class="filter-bar" *ngIf="activeFilter">
+  <!-- Filter summary / dashboard drilldown banner.
+       To remove the "Showing dashboard drilldown..." message, delete the second <span> below.
+       To remove this banner completely, delete this whole <section class="filter-bar"> block. -->
+  <section class="filter-bar" *ngIf="activeFilter || dashboardDrilldownDate">
     <div class="filter-info">
-      Active Filter: <strong>{{ activeFilter }}</strong>
+      <span *ngIf="activeFilter">Active Filter: <strong>{{ activeFilter }}</strong></span>
+      <span *ngIf="dashboardDrilldownDate">Showing dashboard drilldown for {{ dashboardDrilldownDate }}</span>
     </div>
     <button class="clear-btn" (click)="clearFilter()">Clear Filter</button>
   </section>

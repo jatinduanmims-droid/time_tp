@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { DemoDashboardComponent } from './demo.dashboard';
 import { CreditControls } from '../../services/credit-controls';
+import { EmailService } from '../../services/email.service';
+import { Router } from '@angular/router';
 
 class CreditControlsMock {
   getInvoiceLoanReport() {
@@ -35,6 +37,32 @@ class CreditControlsMock {
   }
 }
 
+class EmailServiceMock {
+  getBatchEmails() {
+    return of([
+      {
+        EMAIL_RECEIVEDTIME: '2026-03-29T09:00:00Z',
+        EMAIL_CLASSIFICATION: 'Urgent',
+        SLAMEET: 'N'
+      },
+      {
+        EMAIL_RECEIVEDTIME: '2026-03-29T12:00:00Z',
+        EMAIL_CLASSIFICATION: 'Normal',
+        SLAMEET: 'Y'
+      },
+      {
+        EMAIL_RECEIVEDTIME: '2026-03-30T10:00:00Z',
+        EMAIL_CLASSIFICATION: 'Urgent',
+        SLAMEET: 'Y'
+      }
+    ]);
+  }
+}
+
+class RouterMock {
+  navigate = jasmine.createSpy('navigate');
+}
+
 describe('DemoDashboardComponent', () => {
   let component: DemoDashboardComponent;
   let fixture: ComponentFixture<DemoDashboardComponent>;
@@ -57,7 +85,9 @@ describe('DemoDashboardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DemoDashboardComponent],
       providers: [
-        { provide: CreditControls, useClass: CreditControlsMock }
+        { provide: CreditControls, useClass: CreditControlsMock },
+        { provide: EmailService, useClass: EmailServiceMock },
+        { provide: Router, useClass: RouterMock }
       ]
     }).compileComponents();
 
@@ -107,6 +137,14 @@ describe('DemoDashboardComponent', () => {
     expect(component.getDisplayStats(control)[2].label).toBe('SLA Pass Count');
   });
 
+  it('should map live Jatin KPIs into incoming requests control', () => {
+    const control = component.getActiveControl();
+
+    expect(control.stats[0].label).toBe('SLA Health');
+    expect(control.stats[1].label).toBe('Total Requests');
+    expect(control.stats[2].label).toBe('Urgent Requests');
+  });
+
   it('should show SLA pass count for a passed incoming requests day', () => {
     const control = component.getActiveControl();
     component.viewedMonthByControl[control.id] = '2026-03';
@@ -115,6 +153,20 @@ describe('DemoDashboardComponent', () => {
 
     expect(component.getDisplayStats(control)[0].value).toBe('30 Mar 2026');
     expect(component.getDisplayStats(control)[1].label).toBe('SLA Pass Count');
+  });
+
+  it('should route incoming requests selected day drilldown to jatin dashboard with the selected date', () => {
+    const router = TestBed.inject(Router) as unknown as RouterMock;
+    const control = component.getActiveControl();
+    component.viewedMonthByControl[control.id] = '2026-03';
+
+    component.selectCalendarDay(control.id, 29);
+    component.openControlDrilldown(control);
+
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/jatin-dashboard'],
+      { queryParams: { date: '2026-03-29' } }
+    );
   });
 
   it('should show invoice-loan recon KPIs for a failed supply chain day', () => {

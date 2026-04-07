@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CreditControls, InvoiceLoan as InvoiceLoanRecord, MCAAtlas2Report } from '../../services/credit-controls';
+import { EmailDetail, EmailService } from '../../services/email.service';
 
 // KPI cards in the control rows render from this shape.
 // HOW TO EDIT KPI CARDS:
@@ -17,13 +18,17 @@ interface ControlStat {
   note: string;
 }
 
-// Each control shown on the right panel is driven from this local demo model.
+// Each control shown on the right panel is driven from this local dashboard model.
 // DATA SOURCE NOTE:
-// - Data is currently mocked in this file itself; there is no API/service call yet.
-// - To map a control from another `.ts` file, keep the control id here and then:
+// - The category/control structure still lives in this file, but some controls now reuse live data sources:
+//   - Incoming Requests Management Control -> `EmailService.getBatchEmails()` from `Jatin_dashboard.ts`
+//   - Supply Chain Financing -> `CreditControls.getInvoiceLoanReport()` from `invoice-loan.ts`
+//   - Legal Entity Validation -> `CreditControls.getMCAAtlas2Report()` from `mca-atlas2-recon.ts`
+// - To map a new control from another `.ts` file, keep the control id here and then:
 //   1. create a helper function that returns KPIs in plain object form
 //   2. call that helper inside `getDisplayStats()`
 //   3. call that helper inside `getDayStatus()` if pass/fail should depend on those KPIs
+//   4. call the source service in `ngOnInit()` if the control needs live data
 interface DashboardControl {
   id: string;
   name: string;
@@ -52,6 +57,12 @@ interface DashboardCategory {
   styleUrls: ['./demo.dashboard.scss']
 })
 export class DemoDashboardComponent implements OnInit {
+  // Browser storage key for saved favourites.
+  // HOW TO EDIT:
+  // - To reset old saved favourites after a future format change, rename this key.
+  // - To stop persisting favourites completely, remove the `loadFavoriteControls()` / `saveFavoriteControls()` calls.
+  private readonly favoriteStorageKey = 'demo-dashboard.favorite-controls';
+
   // Snapshot label shown in the header pill.
   // LIVE DATE NOTE:
   // - This now follows the machine/system date automatically, so you do not need to update it manually every day.
@@ -60,8 +71,12 @@ export class DemoDashboardComponent implements OnInit {
     return `Snapshot: ${this.formatDateLabel(this.getCurrentBusinessDate())}`;
   }
 
-  // DEMO DATA SOURCE:
-  // All category / control / KPI data is currently mocked locally in this file.
+  // DASHBOARD DATA SOURCE:
+  // - The left-side category/control list is defined locally in this file.
+  // - Some KPI cards are still seeded here, but these controls now get live KPI overlays:
+  //   - `incoming-requests-management`
+  //   - `supply-chain-financing`
+  //   - `legal-entity-validation`
   // HOW TO ADD A NEW CONTROL:
   // - Add a new object inside the correct category's `controls` array
   // - Give it a unique `id`
@@ -300,6 +315,18 @@ export class DemoDashboardComponent implements OnInit {
     mismatchShare: 0
   };
 
+  // LIVE JATIN KPI SOURCE:
+  // - This map is filled from the same `EmailService.getBatchEmails()` call used by `Jatin_dashboard.ts`
+  // - Key format is `yyyy-MM-dd`
+  // - Each entry stores the daily KPI values needed by Incoming Requests Management Control
+  jatinDailyKpisByDate = new Map<string, {
+    totalToday: number;
+    urgentToday: number;
+    slaPercentage: number;
+    slaMet: number;
+    slaBreach: number;
+  }>();
+
   // Stores the visible month per child calendar.
   // This is what powers Previous / Next month navigation.
   viewedMonthByControl: Record<string, string> = Object.fromEntries(
@@ -308,7 +335,11 @@ export class DemoDashboardComponent implements OnInit {
     )
   );
 
-  constructor(private credit: CreditControls, private router: Router) {
+  constructor(
+    private credit: CreditControls,
+    private emailSrv: EmailService,
+    private router: Router
+  ) {
     this.controlSearchQueryByCategory = Object.fromEntries(
       this.categories.map((category) => [category.key, ''])
     );
@@ -321,6 +352,10 @@ export class DemoDashboardComponent implements OnInit {
   // Original dashboard startup hook.
   // We now load the live invoice-loan report here so Supply Chain Financing can show real KPI values.
   ngOnInit(): void {
+    // Load saved favourites first so the Favourite parent card reflects the user's last selection
+    // as soon as the dashboard opens again after navigation/reload.
+    this.loadFavoriteControls();
+    this.fetchIncomingRequestsJatinData();
     this.fetchSupplyChainInvoiceLoanData();
     this.fetchMcaReconData();
   }
@@ -437,7 +472,7 @@ export class DemoDashboardComponent implements OnInit {
 
   // Toggles a control inside/outside the Favourite parent section.
   // This is the main function to update if favourite behavior changes later
-  // (for example: persisting favourites to local storage or backend).
+  // (for example: persisting favourites to backend instead of browser localStorage).
   toggleFavorite(controlId: string): void {
     if (this.favoriteControlIds.has(controlId)) {
       this.favoriteControlIds.delete(controlId);
@@ -453,6 +488,10 @@ export class DemoDashboardComponent implements OnInit {
       );
       this.activeControlId = this.getVisibleControls(this.getActiveCategory())[0]?.id ?? '';
     }
+
+    // Persist the latest favourite set so the user still sees the same saved controls
+    // after leaving this page and coming back later.
+    this.saveFavoriteControls();
   }
 
   isFavorite(controlId: string): boolean {
@@ -529,7 +568,11 @@ export class DemoDashboardComponent implements OnInit {
   // Right now we only make the "Selected Day" KPI clickable because that is the clearest date context.
   // To make more KPI cards clickable later, expand this condition.
   canOpenControlPage(control: DashboardControl, stat: ControlStat): boolean {
-    return stat.label === 'Selected Day' && ['supply-chain-financing', 'legal-entity-validation'].includes(control.id);
+    return stat.label === 'Selected Day' && [
+      'incoming-requests-management',
+      'supply-chain-financing',
+      'legal-entity-validation'
+    ].includes(control.id);
   }
 
   // Click handler for KPI-card drilldown into the dedicated control pages.
@@ -938,6 +981,10 @@ export class DemoDashboardComponent implements OnInit {
       return '/invoice-loan';
     }
 
+    if (controlId === 'incoming-requests-management') {
+      return '/jatin-dashboard';
+    }
+
     if (controlId === 'legal-entity-validation') {
       return '/mca-atlas2-recon';
     }
@@ -956,8 +1003,10 @@ export class DemoDashboardComponent implements OnInit {
   private getDayStatus(control: DashboardControl, year: number, monthIndex: number, day: number): 'passed' | 'failed' {
     if (control.id === 'incoming-requests-management') {
       // Jatin-dashboard mapping rule:
-      // Anything below 100% SLA Health is treated as failed.
-      // To change that business rule later, edit the return condition below.
+      // For live day-level Jatin data:
+      // - SLA Health = 100 -> passed
+      // - SLA Health < 100 -> failed
+      // If there is no live day-level row yet, we fall back to the seeded demo pattern.
       const jatinKpis = this.getIncomingRequestsJatinKpis(year, monthIndex, day);
       return jatinKpis.slaPercentage === 100 ? 'passed' : 'failed';
     }
@@ -1033,6 +1082,10 @@ export class DemoDashboardComponent implements OnInit {
       return this.supplyChainDailyKpisByDate.has(this.getDateKey(year, monthIndex, day));
     }
 
+    if (control.id === 'incoming-requests-management') {
+      return this.jatinDailyKpisByDate.has(this.getDateKey(year, monthIndex, day));
+    }
+
     if (control.id === 'legal-entity-validation') {
       // MCA currently gives us a live snapshot rather than daily historical rows.
       // So for the dashboard calendar we highlight the current business date in yellow
@@ -1077,6 +1130,51 @@ export class DemoDashboardComponent implements OnInit {
     return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
+  // Load saved favourites from browser storage.
+  // HOW TO EDIT:
+  // - To change where favourites are stored, replace the `localStorage` calls here and in `saveFavoriteControls()`.
+  // - To force the dashboard to always start from the hardcoded default favourite, remove this function call from `ngOnInit()`.
+  private loadFavoriteControls(): void {
+    try {
+      const rawValue = window.localStorage.getItem(this.favoriteStorageKey);
+
+      if (!rawValue) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawValue);
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const validControlIds = new Set(this.getAllControls().map((control) => control.id));
+      const savedIds = parsed.filter((controlId): controlId is string =>
+        typeof controlId === 'string' && validControlIds.has(controlId)
+      );
+
+      if (savedIds.length) {
+        this.favoriteControlIds = new Set(savedIds);
+      }
+    } catch (error) {
+      console.warn('Unable to load saved favourites', error);
+    }
+  }
+
+  // Save favourites to browser storage so the user keeps the same Favourite list across navigation/reload.
+  // HOW TO EDIT:
+  // - To move this to a backend/API later, replace the `localStorage.setItem(...)` call with that save call.
+  // - To clear persisted favourites manually in the browser, delete the `demo-dashboard.favorite-controls` localStorage key.
+  private saveFavoriteControls(): void {
+    try {
+      window.localStorage.setItem(
+        this.favoriteStorageKey,
+        JSON.stringify(Array.from(this.favoriteControlIds))
+      );
+    } catch (error) {
+      console.warn('Unable to save favourites', error);
+    }
+  }
+
   // Small deterministic hash used by `getDayStatus()` to make demo month data repeatable.
   private hashValue(input: string): number {
     return Array.from(input).reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0);
@@ -1096,6 +1194,118 @@ export class DemoDashboardComponent implements OnInit {
         console.error('Supply chain invoice-loan load error', err);
       }
     });
+  }
+
+  // Load the same Jatin email source already used by the dedicated Jatin dashboard page.
+  // This gives Incoming Requests Management Control real day-level KPI values in the dashboard.
+  private fetchIncomingRequestsJatinData(): void {
+    this.emailSrv.getBatchEmails().subscribe({
+      next: (rows) => {
+        this.jatinDailyKpisByDate = this.buildIncomingRequestsJatinDailyKpis(rows);
+        this.applyJatinStatsToControl();
+      },
+      error: (err) => {
+        console.error('Incoming requests Jatin load error', err);
+      }
+    });
+  }
+
+  // Aggregate the raw Jatin email rows into one KPI object per received date.
+  private buildIncomingRequestsJatinDailyKpis(rows: EmailDetail[]): Map<string, {
+    totalToday: number;
+    urgentToday: number;
+    slaPercentage: number;
+    slaMet: number;
+    slaBreach: number;
+  }> {
+    const byDate = new Map<string, {
+      totalToday: number;
+      urgentToday: number;
+      slaMet: number;
+      slaBreach: number;
+    }>();
+
+    for (const row of rows) {
+      const receivedDate = this.normalizeJatinDate((row as Record<string, unknown>)['EMAIL_RECEIVEDTIME']);
+
+      if (!receivedDate) {
+        continue;
+      }
+
+      if (!byDate.has(receivedDate)) {
+        byDate.set(receivedDate, {
+          totalToday: 0,
+          urgentToday: 0,
+          slaMet: 0,
+          slaBreach: 0
+        });
+      }
+
+      const bucket = byDate.get(receivedDate)!;
+      bucket.totalToday += 1;
+
+      const classification = String((row as Record<string, unknown>)['EMAIL_CLASSIFICATION'] ?? '').trim().toLowerCase();
+      if (classification === 'urgent') {
+        bucket.urgentToday += 1;
+      }
+
+      const slaMet = this.normalizeJatinSlaValue(
+        (row as Record<string, unknown>)['SLAMEET']
+        ?? (row as Record<string, unknown>)['SLAMET']
+        ?? (row as Record<string, unknown>)['SLA_MET']
+      );
+
+      if (slaMet === 'Y') {
+        bucket.slaMet += 1;
+      } else {
+        bucket.slaBreach += 1;
+      }
+    }
+
+    return new Map(
+      Array.from(byDate.entries()).map(([dateKey, bucket]) => {
+        const totalSla = bucket.slaMet + bucket.slaBreach;
+        const slaPercentage = totalSla
+          ? Math.round((bucket.slaMet / totalSla) * 100)
+          : 0;
+
+        return [dateKey, {
+          totalToday: bucket.totalToday,
+          urgentToday: bucket.urgentToday,
+          slaPercentage,
+          slaMet: bucket.slaMet,
+          slaBreach: bucket.slaBreach
+        }];
+      })
+    );
+  }
+
+  // Push the live Jatin snapshot into the default Incoming Requests cards shown before a calendar date is clicked.
+  private applyJatinStatsToControl(): void {
+    const incomingControl = this.categories
+      .flatMap((category) => category.controls)
+      .find((control) => control.id === 'incoming-requests-management');
+
+    if (!incomingControl) {
+      return;
+    }
+
+    const todayKey = this.getDateKey(
+      this.getCurrentBusinessDate().getFullYear(),
+      this.getCurrentBusinessDate().getMonth(),
+      this.getCurrentBusinessDate().getDate()
+    );
+    const snapshotKpis = this.jatinDailyKpisByDate.get(todayKey);
+
+    if (!snapshotKpis) {
+      return;
+    }
+
+    incomingControl.stats = [
+      { label: 'SLA Health', value: `${snapshotKpis.slaPercentage}%`, note: 'Mapped from Jatin dashboard' },
+      { label: 'Total Requests', value: `${snapshotKpis.totalToday}`, note: 'Received on selected day' },
+      { label: 'Urgent Requests', value: `${snapshotKpis.urgentToday}`, note: 'Mapped from EMAIL_CLASSIFICATION' }
+    ];
   }
 
   // Load the same MCA source already used by the dedicated legal-entity recon screen.
@@ -1264,6 +1474,24 @@ export class DemoDashboardComponent implements OnInit {
       .toUpperCase();
   }
 
+  // Keep Jatin date parsing consistent with the dedicated Jatin dashboard.
+  private normalizeJatinDate(value: unknown): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  private normalizeJatinSlaValue(value: unknown): 'Y' | 'N' {
+    return String(value ?? '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+  }
+
   // Preview/original demo mapping for the control linked to Jatin_dashboard KPIs.
   // The rule is:
   // - SLA Health (`slaPercentage`) = 100 -> passed
@@ -1279,9 +1507,17 @@ export class DemoDashboardComponent implements OnInit {
     slaMet: number;
     slaBreach: number;
   } {
-    // This is demo seed data for the original dashboard.
-    // Replace these values with real Jatin_dashboard service data when API integration is ready.
-    // To manually change a specific day's KPI result, edit/add a date in `presetByDate` below.
+    // LIVE JATIN MAPPING:
+    // - First check whether the Jatin email source has a real KPI bucket for this date
+    // - If yes, use that live daily KPI object
+    // - If not, fall back to the seeded demo data so the dashboard still works before historical coverage is complete
+    const liveDailyKpis = this.jatinDailyKpisByDate.get(this.getDateKey(year, monthIndex, day));
+
+    if (liveDailyKpis) {
+      return liveDailyKpis;
+    }
+
+    // This is fallback demo seed data for dates that do not yet exist in the live Jatin response.
     const presetByDate: Record<string, { totalToday: number; urgentToday: number; slaPercentage: number }> = {
       '2026-03-26': { totalToday: 22, urgentToday: 2, slaPercentage: 100 },
       '2026-03-27': { totalToday: 18, urgentToday: 1, slaPercentage: 100 },
