@@ -64,8 +64,10 @@
   <section class="middle-grid">
     <article class="panel sla-card">
       <div class="panel-head">
-        <h2>SLA Health</h2>
-        <p>Real-time service-level performance</p>
+        <div>
+          <h2>{{ isGraphMode ? 'Daily Graph View' : 'SLA Health' }}</h2>
+          <p>{{ isGraphMode ? 'Existing charts now reflect the selected day from the table context' : 'Real-time service-level performance' }}</p>
+        </div>
       </div>
 
       <div class="sla-container">
@@ -78,14 +80,14 @@
           </canvas>
 
           <div class="sla-center-text">
-            <div class="sla-percent">{{ slaPercentage }}%</div>
-            <div class="sla-label">SLA Met</div>
+            <div class="sla-percent">{{ chartSlaPercentage }}%</div>
+            <div class="sla-label">{{ isGraphMode ? graphDateDisplay : 'SLA Met' }}</div>
           </div>
         </div>
 
         <div class="sla-side">
-          <p class="muted">Breach Count</p>
-          <strong class="breach-count">{{ slaBreach }}</strong>
+          <p class="muted">{{ isGraphMode ? 'Selected Day Breach Count' : 'Breach Count' }}</p>
+          <strong class="breach-count">{{ chartSlaBreach }}</strong>
           <div class="sla-trend-wrapper">
             <canvas
               baseChart
@@ -98,8 +100,8 @@
       </div>
 
       <div class="sla-footer-strip">
-        <div>Total Emails Received Today</div>
-        <div class="delta">+12 from yesterday</div>
+        <div>{{ isGraphMode ? 'Selected day in table' : 'Total Emails Received Today' }}</div>
+        <div class="delta">{{ isGraphMode ? chartContextSummary : '+12 from yesterday' }}</div>
       </div>
     </article>
 
@@ -174,6 +176,114 @@
   </section>
 
   <section class="panel table-card">
+    <div class="table-toolbar">
+      <div class="table-toolbar-left">
+        <div class="table-view-group">
+          <span class="table-toolbar-label">View</span>
+          <select class="table-view-select" aria-label="Table view">
+            <option>My View - Default</option>
+          </select>
+        </div>
+
+        <div class="table-toolbar-icons" aria-hidden="true">
+          <button type="button" class="toolbar-icon-btn">★</button>
+          <button type="button" class="toolbar-icon-btn">↻</button>
+          <button type="button" class="toolbar-icon-btn">⌦</button>
+        </div>
+      </div>
+
+      <div class="table-toolbar-right">
+        <span class="table-filter-label">Filter <span class="table-filter-badge">10</span></span>
+      </div>
+    </div>
+
+    <div class="table-actions-bar">
+      <div class="table-search-shell">
+        <i class="pi pi-search"></i>
+        <input type="text" placeholder="Search" aria-label="Search preview shell" />
+      </div>
+
+      <div class="table-actions">
+        <button
+          type="button"
+          class="table-action-btn"
+          [class.active]="activeTableAction === 'scoring'"
+          (click)="setTableAction('scoring')">Scoring</button>
+        <div class="graph-action-group">
+          <button
+            type="button"
+            class="table-action-btn"
+            [class.active]="activeTableAction === 'graph'"
+            (click)="setTableAction('graph')">Graph</button>
+          <div class="calendar-popover" *ngIf="openCalendar === 'graph'">
+            <div class="calendar-popover-head">
+              <button type="button" class="calendar-nav-btn" (click)="changeCalendarMonth('graph', -1)">‹</button>
+              <strong>{{ graphCalendarLabel }}</strong>
+              <button type="button" class="calendar-nav-btn" (click)="changeCalendarMonth('graph', 1)">›</button>
+            </div>
+
+            <div class="calendar-weekdays">
+              <span *ngFor="let day of calendarWeekdays">{{ day }}</span>
+            </div>
+
+            <div class="calendar-grid">
+              <button
+                type="button"
+                class="calendar-day"
+                *ngFor="let day of getCalendarDays('graph')"
+                [class.outside]="!day.inMonth"
+                [class.selected]="day.selected"
+                [class.has-data]="day.hasData"
+                [disabled]="!day.hasData"
+                (click)="selectGraphCalendarDate(day.date)">
+                {{ day.day }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="report-action-group">
+          <button
+            type="button"
+            class="table-action-btn"
+            [class.active]="activeTableAction === 'report'"
+            (click)="setTableAction('report')">Report</button>
+          <div class="calendar-popover" *ngIf="openCalendar === 'report'">
+            <div class="calendar-popover-head">
+              <button type="button" class="calendar-nav-btn" (click)="changeCalendarMonth('report', -1)">‹</button>
+              <strong>{{ reportCalendarLabel }}</strong>
+              <button type="button" class="calendar-nav-btn" (click)="changeCalendarMonth('report', 1)">›</button>
+            </div>
+
+            <div class="calendar-weekdays">
+              <span *ngFor="let day of calendarWeekdays">{{ day }}</span>
+            </div>
+
+            <div class="calendar-grid">
+              <button
+                type="button"
+                class="calendar-day"
+                *ngFor="let day of getCalendarDays('report')"
+                [class.outside]="!day.inMonth"
+                [class.selected]="day.selected"
+                [class.has-data]="day.hasData"
+                [disabled]="!day.hasData"
+                (click)="selectReportCalendarDate(day.date)">
+                {{ day.day }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="table-action-btn"
+          [class.active]="activeTableAction === 'export'"
+          (click)="setTableAction('export')">Export</button>
+        <button type="button" class="table-action-icon" aria-label="Table settings">
+          <i class="pi pi-cog"></i>
+        </button>
+      </div>
+    </div>
+
     <p-table
       #dt
       [value]="displayedEmails"
