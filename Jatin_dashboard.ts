@@ -263,31 +263,38 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
   // KPI CALCULATIONS
   // =========================
   private calculateKpis(): void {
+    const sourceRows = this.getDrilldownRows();
 
     const target = this.targetDate.toDateString();
 
-    this.totalToday = this.batchEmails.filter(e =>
+    this.totalToday = sourceRows.filter(e =>
       new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target
     ).length;
 
-    this.urgentToday = this.batchEmails.filter(e =>
+    this.urgentToday = sourceRows.filter(e =>
       new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       e.EMAIL_CLASSIFICATION === 'Urgent'
     ).length;
 
-    this.amendmentsToday = this.batchEmails.filter(e =>
+    this.amendmentsToday = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       e.OPERATION?.toLowerCase().includes('amend')
     ).length;
 
-    this.issuanceToday = this.batchEmails.filter(e =>
+    this.issuanceToday = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       e.OPERATION?.toLowerCase().includes('issu')
     ).length;
 
-    this.cancellationToday = this.batchEmails.filter(e =>
+    this.cancellationToday = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       e.OPERATION?.toLowerCase().includes('cancel')
     ).length;
 
-    this.unknownToday = this.batchEmails.filter(e => {
+    this.unknownToday = sourceRows.filter(e => {
+      if (new Date(e.EMAIL_RECEIVEDTIME).toDateString() !== target) {
+        return false;
+      }
       const op = e.OPERATION;
       return !op || op.trim() === '' || op.trim().toLowerCase() === 'none';
     }).length;
@@ -298,23 +305,28 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
     const d48 = new Date(this.targetDate);
     d48.setDate(d48.getDate() + 2);
 
-    this.due24 = this.batchEmails.filter(e =>
+    this.due24 = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       new Date(e.SLA_DATE).toDateString() === d24.toDateString()
     ).length;
 
-    this.due48 = this.batchEmails.filter(e =>
+    this.due48 = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       new Date(e.SLA_DATE).toDateString() === d48.toDateString()
     ).length;
 
-    this.overdue = this.batchEmails.filter(e =>
+    this.overdue = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       new Date(e.SLA_DATE) < this.targetDate &&
       this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) !== 'Y'
     ).length;
 
-    this.slaMet = this.batchEmails.filter(e =>
+    this.slaMet = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) === 'Y'
     ).length;
-    this.slaBreach = this.batchEmails.filter(e =>
+    this.slaBreach = sourceRows.filter(e =>
+      new Date(e.EMAIL_RECEIVEDTIME).toDateString() === target &&
       this.normalizeSlaValue((e as any).SLAMEET ?? (e as any).SLAMET ?? e.SLA_MET) !== 'Y'
     ).length;
 
@@ -389,10 +401,11 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
         ]
       };
     } else {
-      // SLA Trend: last 7 available dates (up to targetDate)
+      // Keep the non-graph trend aligned with the current drilldown scope.
       const trendMap = new Map<string, { date: Date; met: number; breach: number }>();
+      const trendRows = this.getDrilldownRows();
 
-      this.batchEmails
+      trendRows
         .filter(e => new Date(e.EMAIL_RECEIVEDTIME) <= this.targetDate)
         .forEach(e => {
           const d = new Date(e.EMAIL_RECEIVEDTIME);
@@ -745,7 +758,7 @@ export class JatinDashboardComponent implements OnInit, AfterViewInit {
 
   private getChartRows(): EmailDetail[] {
     if (!this.isGraphMode) {
-      return [...this.batchEmails];
+      return this.getDrilldownRows();
     }
 
     const baseRows = this.getRowsForCurrentFilter();
