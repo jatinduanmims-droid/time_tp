@@ -161,6 +161,7 @@
         <tr>
           <td
             *ngFor="let col of cols"
+            [attr.title]="row[col.field] || ''"
             [ngClass]="{
               'center-cell': col.align === 'center',
               'wide-col': isWideColumn(col.field),
@@ -182,7 +183,9 @@
               </ng-container>
 
               <ng-template #defaultCell>
-                {{ row[col.field] || "-" }}
+                <span class="cell-text" [ngClass]="{ 'clamp-text': isWideColumn(col.field) }">
+                  {{ row[col.field] || "-" }}
+                </span>
               </ng-template>
             </ng-template>
 

@@ -18,16 +18,15 @@ export class ChipDash implements OnInit {
   selectedView: string = "total";
 
   cols: Array<{ field: string; header: string; align?: "center" }> = [
-    { field: "CTRL_NUMBER", header: "Control Number" },
-    { field: "CTRL_TITLE", header: "Control Title" },
-    { field: "CTRL_TYPE", header: "Control Type" },
+    { field: "CTRL_NUMBER", header: "Number" },
+    { field: "CTRL_TITLE", header: "Control" },
+    { field: "CTRL_TYPE", header: "Type" },
     { field: "CTRL_DESCRIPTION", header: "Description" },
     { field: "CTRL_EVIDENCE", header: "Evidence" },
-    { field: "CTRL_OFFICER_COMMENTS", header: "Officer Comments" },
-    { field: "TEAM_NAME", header: "Team Name" },
-    { field: "TEAM_EMAIL_ID", header: "Team Email" },
+    { field: "CTRL_OFFICER_COMMENTS", header: "Comments" },
+    { field: "TEAM_NAME", header: "Team" },
     { field: "STATUS", header: "Status", align: "center" },
-    { field: "EMAIL_SENT_FLAG", header: "Email Sent", align: "center" },
+    { field: "EMAIL_SENT_FLAG", header: "Sent", align: "center" },
     { field: "ACCEPTANCE_FLAG", header: "Accepted", align: "center" }
   ];
   globalFilterFields: string[] = this.cols.map((col) => col.field);
