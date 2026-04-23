@@ -15,6 +15,7 @@ export class ChipDash implements OnInit {
   today = new Date();
 
   activeFilter: string = "total";
+  selectedView: string = "total";
 
   cols: Array<{ field: string; header: string; align?: "center" }> = [
     { field: "CTRL_NUMBER", header: "Control Number" },
@@ -39,6 +40,7 @@ export class ChipDash implements OnInit {
   completedCount: number = 0;
   pendingCount: number = 0;
   byType: Record<string, number> = {};
+  uniqueControlTypes: string[] = [];
 
   rowsPerPage: number = 10;
   first: number = 0;
@@ -66,6 +68,7 @@ export class ChipDash implements OnInit {
           const type = c.CTRL_TYPE || "Unknown";
           this.byType[type] = (this.byType[type] || 0) + 1;
         });
+        this.uniqueControlTypes = Object.keys(this.byType).sort((a, b) => a.localeCompare(b));
 
         this.loading = false;
       },
@@ -79,6 +82,7 @@ export class ChipDash implements OnInit {
         this.completedCount = 0;
         this.pendingCount = 0;
         this.byType = {};
+        this.uniqueControlTypes = [];
       }
     });
   }
@@ -91,6 +95,7 @@ export class ChipDash implements OnInit {
   onFilter(filter: string): void {
     this.activeFilter = filter;
     this.first = 0;
+    this.selectedView = filter.startsWith("type:") ? filter.replace("type:", "") : "total";
 
     if (filter === "total") {
       this.displayedControls = this.controls;
@@ -104,6 +109,15 @@ export class ChipDash implements OnInit {
     } else {
       this.displayedControls = this.controls;
     }
+  }
+
+  onViewChange(selectedType: string): void {
+    if (!selectedType || selectedType === "total") {
+      this.onFilter("total");
+      return;
+    }
+
+    this.onFilter(`type:${selectedType}`);
   }
 
   clearFilter(): void {
@@ -132,6 +146,72 @@ export class ChipDash implements OnInit {
     return this.normalizeStatus(value) === "Y" ? "flag-yes" : "flag-no";
   }
 
+  exportToExcel(): void {
+    const rows = this.displayedControls.map((control) => {
+      const exportRow: Record<string, string | number> = {};
+
+      this.cols.forEach((col) => {
+        const value = (control as Record<string, unknown>)[col.field];
+        exportRow[col.header] = value == null ? "" : String(value);
+      });
+
+      return exportRow;
+    });
+
+    const tableHeaders = this.cols.map((col) => `<th>${this.escapeHtml(col.header)}</th>`).join("");
+    const tableRows = rows
+      .map((row) => {
+        const cells = this.cols
+          .map((col) => `<td>${this.escapeHtml(String(row[col.header] ?? ""))}</td>`)
+          .join("");
+
+        return `<tr>${cells}</tr>`;
+      })
+      .join("");
+
+    const worksheetHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:x="urn:schemas-microsoft-com:office:excel"
+            xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="UTF-8">
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>CHIPS Controls</x:Name>
+                  <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+        </head>
+        <body>
+          <table>
+            <thead><tr>${tableHeaders}</tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([worksheetHtml], {
+      type: "application/vnd.ms-excel;charset=utf-8;"
+    });
+
+    const fileName = `chips-controls-${this.formatDateForFileName(new Date())}.xls`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+
+    URL.revokeObjectURL(url);
+  }
+
   isWideColumn(field: string): boolean {
     return [
       "CTRL_DESCRIPTION",
@@ -142,5 +222,22 @@ export class ChipDash implements OnInit {
 
   isStatusColumn(field: string): boolean {
     return ["STATUS", "EMAIL_SENT_FLAG", "ACCEPTANCE_FLAG"].includes(field);
+  }
+
+  private formatDateForFileName(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 }
