@@ -1,0 +1,574 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: var(--ink-900);
+}
+
+.dashboard-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 22px;
+  overflow: hidden;
+  background: linear-gradient(140deg, var(--bg-top), var(--bg-bottom));
+}
+
+.ambient {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.ambient-a {
+  width: 320px;
+  height: 320px;
+  top: -120px;
+  right: -90px;
+  background: radial-gradient(circle, rgba(19, 140, 99, 0.22), transparent 70%);
+}
+
+.ambient-b {
+  width: 420px;
+  height: 420px;
+  left: -150px;
+  bottom: -180px;
+  background: radial-gradient(circle, rgba(45, 109, 189, 0.2), transparent 68%);
+}
+
+.topbar,
+.panel,
+.filter-bar {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  padding: 16px 18px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  background: linear-gradient(132deg, var(--brand-dark), var(--brand));
+  box-shadow: var(--glow);
+  color: var(--white);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  animation: rise 0.35s ease;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.topbar h1 {
+  margin: 4px 0 0;
+  font-size: clamp(1.2rem, 1.6vw, 1.6rem);
+  letter-spacing: 0.01em;
+}
+
+.date-pill {
+  background: var(--white-translucent);
+  border: 1px solid var(--white-translucent-2);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  backdrop-filter: blur(4px);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--white-soft);
+  border-radius: 14px;
+  box-shadow: var(--glow);
+  padding: 14px;
+  backdrop-filter: blur(6px);
+  animation: rise 0.4s ease;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.panel-head p {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 0.78rem;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.kpi {
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.kpi:hover {
+  transform: translateY(-2px);
+}
+
+.kpi strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 1.28rem;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 0.74rem;
+  color: var(--ink-700);
+  letter-spacing: 0.02em;
+}
+
+.kpi-total {
+  border-color: var(--brand-border-soft);
+}
+
+.kpi-completed {
+  border-color: color-mix(in srgb, var(--success) 45%, white);
+}
+
+.kpi-pending {
+  border-color: color-mix(in srgb, var(--danger) 30%, white);
+}
+
+.kpi.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-ring);
+}
+
+.filter-bar {
+  margin-top: 14px;
+  background: var(--panel-strong);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-info {
+  font-size: 0.87rem;
+  color: var(--ink-700);
+}
+
+.clear-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--brand);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.table-card {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 248, 0.94));
+}
+
+.table-toolbar,
+.table-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.table-toolbar {
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(180deg, var(--panel-deep), var(--panel-soft-4));
+}
+
+.table-toolbar-left,
+.table-toolbar-right,
+.table-view-group,
+.table-toolbar-icons,
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-toolbar-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-500);
+}
+
+.table-view-select,
+.table-search-shell input {
+  height: 31px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-deep);
+  color: var(--ink-900);
+  font: inherit;
+}
+
+.table-view-select {
+  min-width: 220px;
+  padding: 0 10px;
+}
+
+.toolbar-icon-btn,
+.table-action-btn,
+.table-action-icon {
+  border: 0;
+  background: transparent;
+  color: var(--ink-500);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--panel-soft-4);
+}
+
+.table-filter-label {
+  font-size: 0.74rem;
+  color: var(--ink-500);
+}
+
+.table-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--white);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.table-actions-bar {
+  padding: 10px 12px;
+  border-left: 1px solid var(--line-soft);
+  border-right: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, var(--panel-deep), var(--panel-soft-2));
+}
+
+.table-search-shell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-search-shell .pi {
+  font-size: 0.72rem;
+  color: var(--icon-muted);
+}
+
+.table-search-shell input {
+  width: 200px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+}
+
+.table-actions {
+  gap: 10px;
+  align-items: center;
+}
+
+.table-action-btn {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-action-btn.active {
+  padding: 0 18px;
+  border: 2px solid color-mix(in srgb, var(--brand) 22%, white);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 12%, white);
+  color: color-mix(in srgb, var(--brand) 85%, black);
+}
+
+.table-action-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.table-head-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.center-cell {
+  text-align: center;
+}
+
+.filter-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-pill,
+.flag-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 74px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.sla-ok {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, white);
+}
+
+.sla-nok {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, white);
+}
+
+.flag-yes {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, white);
+}
+
+.flag-no {
+  color: var(--ink-700);
+  background: var(--panel-soft-2);
+}
+
+:host ::ng-deep .modern-table .p-datatable-wrapper {
+  border-left: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-strong);
+}
+
+:host ::ng-deep .modern-table .p-datatable-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr > th {
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--line-soft);
+  border-right: 1px solid var(--table-divider);
+  padding: 0.75rem 0.7rem;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr:first-child > th {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) > th {
+  background: var(--table-filter-bg);
+  border-bottom: 1px solid var(--table-filter-border);
+  border-right: 1px solid var(--table-divider);
+  padding: 5px 6px;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) .filter-wrapper {
+  gap: 4px;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) .pi {
+  font-size: 0.62rem;
+  color: var(--icon-muted);
+}
+
+:host ::ng-deep .filter-input .p-column-filter,
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) .p-column-filter {
+  width: 100%;
+}
+
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) .p-column-filter-element {
+  min-width: 0;
+}
+
+:host ::ng-deep .filter-input .p-inputtext,
+:host ::ng-deep .modern-table .p-datatable-thead > tr:nth-child(2) .p-inputtext {
+  width: 100%;
+  height: 24px;
+  font-size: 0.68rem;
+  padding: 0 0.42rem;
+  line-height: 1.1;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-deep);
+}
+
+:host ::ng-deep .modern-table .p-datatable-tbody > tr > td {
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--line-subtle);
+  border-right: 1px solid var(--table-divider);
+  padding: 0.8rem 0.7rem;
+  background: var(--panel-deep);
+  vertical-align: top;
+}
+
+:host ::ng-deep .modern-table .p-datatable-tbody > tr > td.wide-col {
+  min-width: 220px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+:host ::ng-deep .modern-table th.status-col,
+:host ::ng-deep .modern-table td.status-col {
+  min-width: 120px;
+}
+
+:host ::ng-deep .modern-table .p-sortable-column .p-sortable-column-icon,
+:host ::ng-deep .modern-table .p-sortable-column .pi-sort-alt,
+:host ::ng-deep .modern-table .p-sortable-column .pi-sort-amount-up-alt,
+:host ::ng-deep .modern-table .p-sortable-column .pi-sort-amount-down {
+  color: var(--icon-muted);
+  font-size: 0.78rem;
+}
+
+:host ::ng-deep .modern-table .p-paginator {
+  margin-top: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(180deg, var(--panel-deep), var(--panel-soft-4));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+:host ::ng-deep .modern-table .p-paginator .p-paginator-pages {
+  display: flex;
+  gap: 6px;
+}
+
+:host ::ng-deep .modern-table .p-paginator .p-paginator-page,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-first,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-prev,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-next,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-last {
+  min-width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-deep);
+  color: var(--paginator-text);
+  transition: all 0.18s ease;
+}
+
+:host ::ng-deep .modern-table .p-paginator .p-paginator-page.p-highlight,
+:host ::ng-deep .modern-table .p-paginator .p-paginator-page[aria-current="page"] {
+  background: linear-gradient(132deg, var(--brand-dark), var(--brand)) !important;
+  border-color: var(--brand) !important;
+  color: var(--white) !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--brand-ring), 0 6px 14px var(--brand-shadow);
+}
+
+:host ::ng-deep .modern-table .p-paginator .p-paginator-current {
+  background: var(--panel-deep);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 600;
+  color: var(--paginator-text);
+}
+
+@media (max-width: 980px) {
+  .dashboard-shell {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar,
+  .filter-bar,
+  .table-toolbar,
+  .table-actions-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-view-select,
+  .table-search-shell input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .table-actions {
+    width: 100%;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
