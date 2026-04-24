@@ -1,0 +1,20 @@
+@app.post(
+    "/chips_endpoint_security",
+    response_model=ChipsEndPointSecuritySchema,
+    tags=["chips"]
+)
+def create_chips_endpoint_security(
+    payload: ChipsEndPointSecurityCreateSchema,
+    db: Session = Depends(get_db),
+):
+    row = ChipsEndPointSecurity(**payload.dict())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+
+    with _cache_lock:
+        keys_to_delete = [key for key in _cache if key.startswith("chips_endpoint_security:")]
+        for key in keys_to_delete:
+            del _cache[key]
+
+    return ChipsEndPointSecuritySchema.from_orm(row)
