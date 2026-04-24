@@ -78,12 +78,14 @@ export class EmailComposeComponent implements OnInit, OnChanges {
   }
 
   private initializeComposeState(selectedControl: ChipsDetail, teamControls: ChipsDetail[]): void {
+    const teamName = selectedControl.TEAM_NAME || "Unknown";
+
     this.selectedControl = selectedControl;
-    this.teamControls = teamControls;
+    this.teamControls = this.filterControlsByTeam(teamControls, teamName);
     this.toEmail = String((selectedControl as Record<string, unknown>)["TEAM_EMAIL_ID"] ?? "");
     this.controlType = selectedControl.CTRL_TYPE || "";
-    this.subject = `Action Required: ${this.controlType} Controls - ${selectedControl.TEAM_NAME || "Team"}`;
-    this.body = this.buildEmailBody(this.controlType, selectedControl.TEAM_NAME || "Team");
+    this.subject = `Action Required: ${this.controlType} Controls - ${teamName}`;
+    this.body = this.buildEmailBody(this.controlType, teamName);
   }
 
   private buildEmailBody(controlType: string, _teamName: string): string {
@@ -132,5 +134,9 @@ export class EmailComposeComponent implements OnInit, OnChanges {
 
   private sanitizeFileSegment(value: string): string {
     return String(value || "Team").replace(/[\\/:*?"<>|]+/g, "_").trim() || "Team";
+  }
+
+  private filterControlsByTeam(teamControls: ChipsDetail[], teamName: string): ChipsDetail[] {
+    return teamControls.filter((control) => (control.TEAM_NAME || "Unknown") === teamName);
   }
 }

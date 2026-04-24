@@ -1,7 +1,7 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { TableModule } from "primeng/table";
+import { Table, TableModule } from "primeng/table";
 import { ChipsService, ChipsDetail } from "../../services/chips.service";
 import { EmailComposeComponent } from "./email-compose.component";
 
@@ -13,6 +13,8 @@ import { EmailComposeComponent } from "./email-compose.component";
   styleUrl: "./chip-dash.scss"
 })
 export class ChipDash implements OnInit {
+  @ViewChild("dt") dataTable?: Table;
+
   today = new Date();
 
   activeFilter: string = "total";
@@ -144,9 +146,7 @@ export class ChipDash implements OnInit {
   openEmailCompose(control: ChipsDetail): void {
     const selectedTeamName = control.TEAM_NAME || "Unknown";
     this.selectedComposeControl = control;
-    this.selectedComposeTeamControls = this.controls.filter(
-      (item: ChipsDetail) => (item.TEAM_NAME || "Unknown") === selectedTeamName
-    );
+    this.selectedComposeTeamControls = this.getTeamControls(selectedTeamName);
   }
 
   closeEmailCompose(): void {
@@ -181,7 +181,7 @@ export class ChipDash implements OnInit {
   }
 
   exportToExcel(): void {
-    const rows = this.displayedControls.map((control) => {
+    const rows = this.getExportControls().map((control) => {
       const exportRow: Record<string, string | number> = {};
 
       this.cols.forEach((col) => {
@@ -273,5 +273,14 @@ export class ChipDash implements OnInit {
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  private getTeamControls(teamName: string): ChipsDetail[] {
+    return this.controls.filter((item: ChipsDetail) => (item.TEAM_NAME || "Unknown") === teamName);
+  }
+
+  private getExportControls(): ChipsDetail[] {
+    const filteredRows = this.dataTable?.filteredValue as ChipsDetail[] | null | undefined;
+    return filteredRows ?? this.displayedControls;
   }
 }
