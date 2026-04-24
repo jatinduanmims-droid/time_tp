@@ -2,8 +2,7 @@ import { Component, OnInit, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Table, TableModule } from "primeng/table";
-import { Observable } from "rxjs";
-import { ChipsService, ChipsDetail } from "../../services/chips.service";
+import { ChipsService, ChipsDetail, CreateChipsDetailPayload } from "./chips.service";
 import { AddChipRecordComponent } from "./add-chip-record.component";
 import { EmailComposeComponent } from "./email-compose.component";
 
@@ -150,19 +149,12 @@ export class ChipDash implements OnInit {
     this.addRecordError = "";
   }
 
-  saveRecord(record: ChipsDetail): void {
-    const createRequest = this.getCreateRecordRequest(record);
-
-    if (!createRequest) {
-      this.addRecordError = "ChipsService does not expose a create method in this workspace.";
-      return;
-    }
-
+  saveRecord(record: CreateChipsDetailPayload): void {
     this.isSavingRecord = true;
     this.addRecordError = "";
 
-    createRequest.subscribe({
-      next: (savedRecord: ChipsDetail | void) => {
+    this.chipsService.createChipsRecord(record).subscribe({
+      next: (savedRecord: ChipsDetail) => {
         const createdRecord = this.normalizeCreatedRecord(savedRecord, record);
         this.applyControlsState([createdRecord, ...this.controls]);
         this.closeAddRecordModal();
@@ -331,33 +323,13 @@ export class ChipDash implements OnInit {
     this.onFilter(this.activeFilter);
   }
 
-  private normalizeCreatedRecord(savedRecord: ChipsDetail | void, fallbackRecord: ChipsDetail): ChipsDetail {
-    return (savedRecord && typeof savedRecord === "object" ? savedRecord : fallbackRecord) as ChipsDetail;
-  }
-
-  private getCreateRecordRequest(record: ChipsDetail): Observable<ChipsDetail | void> | null {
-    const service = this.chipsService as ChipsService & Record<string, unknown>;
-    const methodNames = [
-      "createChipsRecord",
-      "addChipsRecord",
-      "createChipRecord",
-      "addChipRecord",
-      "createRecord",
-      "addRecord"
-    ];
-
-    for (const methodName of methodNames) {
-      const candidate = service[methodName];
-      if (typeof candidate !== "function") {
-        continue;
-      }
-
-      const result = (candidate as (payload: ChipsDetail) => unknown).call(this.chipsService, record);
-      if (result && typeof (result as Observable<ChipsDetail | void>).subscribe === "function") {
-        return result as Observable<ChipsDetail | void>;
-      }
-    }
-
-    return null;
+  private normalizeCreatedRecord(savedRecord: ChipsDetail, fallbackRecord: CreateChipsDetailPayload): ChipsDetail {
+    return {
+      ROW_ID: savedRecord?.ROW_ID ?? 0,
+      DT_INSERT: savedRecord?.DT_INSERT ?? "",
+      DT_UPDATE: savedRecord?.DT_UPDATE ?? "",
+      ...fallbackRecord,
+      ...savedRecord
+    };
   }
 }

@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import * as XLSX from "xlsx";
-import { ChipsDetail } from "../../services/chips.service";
+import { ChipsDetail } from "./chips.service";
 
 @Component({
   selector: "app-email-compose",

@@ -16,7 +16,7 @@
     <div class="record-grid">
       <div class="field-group">
         <label for="ctrl-number">Control Number</label>
-        <input id="ctrl-number" name="ctrlNumber" type="text" [(ngModel)]="draft.CTRL_NUMBER" />
+        <input id="ctrl-number" name="ctrlNumber" type="number" [(ngModel)]="draft.CTRL_NUMBER" />
       </div>
 
       <div class="field-group">
@@ -76,6 +76,26 @@
           <option value="N">No</option>
           <option value="Y">Yes</option>
         </select>
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="email-subject">Email Subject</label>
+        <input id="email-subject" name="emailSubject" type="text" [(ngModel)]="draft.EMAIL_SUBJECT" />
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="email-body">Email Body</label>
+        <textarea id="email-body" name="emailBody" rows="4" [(ngModel)]="draft.EMAIL_BODY"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="evidence-file-name">Evidence File Name</label>
+        <input id="evidence-file-name" name="evidenceFileName" type="text" [(ngModel)]="draft.EVIDENCE_FILE_NAME" />
+      </div>
+
+      <div class="field-group">
+        <label for="evidence-provider-comment">Evidence Provider Comment</label>
+        <input id="evidence-provider-comment" name="evidenceProviderComment" type="text" [(ngModel)]="draft.EVIDENCE_PROVIDER_COMMENT" />
       </div>
     </div>
 
