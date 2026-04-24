@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 export interface ChipsDetail {
   ROW_ID: number;
@@ -43,8 +44,34 @@ export class ChipsService {
   }
 
   createChipsRecord(payload: CreateChipsDetailPayload): Observable<ChipsDetail> {
-    return this.http.post<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security`, payload);
+    const createRequests = [
+      () => this.http.post<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security`, payload),
+      () => this.http.put<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security`, payload),
+      () => this.http.post<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security/create`, payload),
+      () => this.http.post<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security/add`, payload),
+      () => this.http.post<ChipsDetail>(`${this.baseUrl}/chips_endpoint_security/insert`, payload)
+    ];
+
+    return this.tryCreateRequests(createRequests);
   }
 
   constructor(private http: HttpClient) {}
+
+  private tryCreateRequests(requests: Array<() => Observable<ChipsDetail>>, index = 0): Observable<ChipsDetail> {
+    const requestFactory = requests[index];
+
+    if (!requestFactory) {
+      return throwError(() => new Error('No create endpoint accepted the request.'));
+    }
+
+    return requestFactory().pipe(
+      catchError((error) => {
+        if (index === requests.length - 1) {
+          return throwError(() => error);
+        }
+
+        return this.tryCreateRequests(requests, index + 1);
+      })
+    );
+  }
 }
