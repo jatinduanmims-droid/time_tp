@@ -1,0 +1,87 @@
+<div class="record-shell">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <button type="button" class="close-btn floating-close-btn" (click)="cancel()" aria-label="Close add record dialog">x</button>
+
+  <section class="record-panel">
+    <div class="record-header">
+      <div>
+        <p class="eyebrow">Create Record</p>
+        <h2>Add CHIPS Control</h2>
+      </div>
+      <p class="record-subtitle">Add a new row and persist it through the CHIPS service.</p>
+    </div>
+
+    <div class="record-grid">
+      <div class="field-group">
+        <label for="ctrl-number">Control Number</label>
+        <input id="ctrl-number" name="ctrlNumber" type="text" [(ngModel)]="draft.CTRL_NUMBER" />
+      </div>
+
+      <div class="field-group">
+        <label for="ctrl-type">Control Type</label>
+        <input id="ctrl-type" name="ctrlType" type="text" [(ngModel)]="draft.CTRL_TYPE" />
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="ctrl-title">Control Title</label>
+        <input id="ctrl-title" name="ctrlTitle" type="text" [(ngModel)]="draft.CTRL_TITLE" />
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="ctrl-description">Description</label>
+        <textarea id="ctrl-description" name="ctrlDescription" rows="4" [(ngModel)]="draft.CTRL_DESCRIPTION"></textarea>
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="ctrl-evidence">Evidence</label>
+        <textarea id="ctrl-evidence" name="ctrlEvidence" rows="4" [(ngModel)]="draft.CTRL_EVIDENCE"></textarea>
+      </div>
+
+      <div class="field-group field-span-2">
+        <label for="ctrl-comments">Comments</label>
+        <textarea id="ctrl-comments" name="ctrlComments" rows="4" [(ngModel)]="draft.CTRL_OFFICER_COMMENTS"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="team-name">Team</label>
+        <input id="team-name" name="teamName" type="text" [(ngModel)]="draft.TEAM_NAME" />
+      </div>
+
+      <div class="field-group">
+        <label for="team-email">Team Email</label>
+        <input id="team-email" name="teamEmail" type="email" [(ngModel)]="draft.TEAM_EMAIL_ID" />
+      </div>
+
+      <div class="field-group">
+        <label for="status">Status</label>
+        <select id="status" name="status" [(ngModel)]="draft.STATUS">
+          <option value="PENDING">PENDING</option>
+          <option value="COMPLETED">COMPLETED</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="email-sent">Email Sent</label>
+        <select id="email-sent" name="emailSent" [(ngModel)]="draft.EMAIL_SENT_FLAG">
+          <option value="N">No</option>
+          <option value="Y">Yes</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="accepted">Accepted</label>
+        <select id="accepted" name="accepted" [(ngModel)]="draft.ACCEPTANCE_FLAG">
+          <option value="N">No</option>
+          <option value="Y">Yes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="record-actions">
+      <button type="button" class="secondary-btn" (click)="cancel()">Cancel</button>
+      <button type="button" class="primary-btn" [disabled]="!isFormValid" (click)="submit()">Add Record</button>
+    </div>
+  </section>
+</div>

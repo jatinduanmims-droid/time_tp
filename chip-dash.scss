@@ -354,6 +354,13 @@
   letter-spacing: 0.04em;
 }
 
+.table-action-btn-primary {
+  border-radius: 14px;
+  background: linear-gradient(132deg, var(--brand-dark), var(--brand));
+  color: var(--white);
+  padding: 0 14px;
+}
+
 .table-action-btn.active {
   padding: 0 18px;
   border: 2px solid color-mix(in srgb, var(--brand) 22%, white);
@@ -616,6 +623,28 @@
   inset: 24px;
   z-index: 1000;
   overflow: auto;
+}
+
+.modal-banner {
+  width: min(920px, calc(100vw - 120px));
+  margin: 0 auto 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  box-shadow: 0 12px 28px rgba(18, 35, 49, 0.12);
+}
+
+.modal-banner-error {
+  background: #fff3f1;
+  border: 1px solid #f0c8c2;
+  color: #9e3f34;
+}
+
+.modal-banner-neutral {
+  background: #f4f8fb;
+  border: 1px solid #cfdae3;
+  color: #456072;
 }
 
 @media (max-width: 980px) {

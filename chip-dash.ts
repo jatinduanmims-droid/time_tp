@@ -2,13 +2,15 @@ import { Component, OnInit, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Table, TableModule } from "primeng/table";
+import { Observable } from "rxjs";
 import { ChipsService, ChipsDetail } from "../../services/chips.service";
+import { AddChipRecordComponent } from "./add-chip-record.component";
 import { EmailComposeComponent } from "./email-compose.component";
 
 @Component({
   selector: "app-chip-dash",
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, EmailComposeComponent],
+  imports: [CommonModule, FormsModule, TableModule, EmailComposeComponent, AddChipRecordComponent],
   templateUrl: "./chip-dash.html",
   styleUrl: "./chip-dash.scss"
 })
@@ -39,6 +41,9 @@ export class ChipDash implements OnInit {
   displayedControls: ChipsDetail[] = [];
   selectedComposeControl?: ChipsDetail;
   selectedComposeTeamControls: ChipsDetail[] = [];
+  isAddRecordModalOpen = false;
+  isSavingRecord = false;
+  addRecordError = "";
   loading: boolean = false;
 
   totalControls: number = 0;
@@ -62,23 +67,7 @@ export class ChipDash implements OnInit {
 
     this.chipsService.getChipsData().subscribe({
       next: (data: ChipsDetail[]) => {
-        this.controls = data;
-        this.displayedControls = data;
-
-        this.totalControls = data.length;
-        this.completedCount = data.filter((c: ChipsDetail) => this.normalizeStatus(c.STATUS) === "COMPLETED").length;
-        this.pendingCount = data.filter((c: ChipsDetail) => this.normalizeStatus(c.STATUS) === "PENDING").length;
-
-        this.byType = {};
-        data.forEach((c: ChipsDetail) => {
-          const type = c.CTRL_TYPE || "Unknown";
-          this.byType[type] = (this.byType[type] || 0) + 1;
-        });
-        this.uniqueControlTypes = Object.keys(this.byType).sort((a, b) => a.localeCompare(b));
-        this.uniqueTeamNames = Array.from(
-          new Set(data.map((c: ChipsDetail) => c.TEAM_NAME || "Unknown"))
-        ).sort((a, b) => a.localeCompare(b));
-
+        this.applyControlsState(data);
         this.loading = false;
       },
       error: (err: unknown) => {
@@ -147,6 +136,43 @@ export class ChipDash implements OnInit {
     const selectedTeamName = control.TEAM_NAME || "Unknown";
     this.selectedComposeControl = control;
     this.selectedComposeTeamControls = this.getTeamControls(selectedTeamName);
+  }
+
+  openAddRecordModal(): void {
+    this.addRecordError = "";
+    this.isSavingRecord = false;
+    this.isAddRecordModalOpen = true;
+  }
+
+  closeAddRecordModal(): void {
+    this.isAddRecordModalOpen = false;
+    this.isSavingRecord = false;
+    this.addRecordError = "";
+  }
+
+  saveRecord(record: ChipsDetail): void {
+    const createRequest = this.getCreateRecordRequest(record);
+
+    if (!createRequest) {
+      this.addRecordError = "ChipsService does not expose a create method in this workspace.";
+      return;
+    }
+
+    this.isSavingRecord = true;
+    this.addRecordError = "";
+
+    createRequest.subscribe({
+      next: (savedRecord: ChipsDetail | void) => {
+        const createdRecord = this.normalizeCreatedRecord(savedRecord, record);
+        this.applyControlsState([createdRecord, ...this.controls]);
+        this.closeAddRecordModal();
+      },
+      error: (err: unknown) => {
+        console.error("Error creating chips record:", err);
+        this.isSavingRecord = false;
+        this.addRecordError = "Unable to save the new record. Please try again.";
+      }
+    });
   }
 
   closeEmailCompose(): void {
@@ -282,5 +308,56 @@ export class ChipDash implements OnInit {
   private getExportControls(): ChipsDetail[] {
     const filteredRows = this.dataTable?.filteredValue as ChipsDetail[] | null | undefined;
     return filteredRows ?? this.displayedControls;
+  }
+
+  private applyControlsState(data: ChipsDetail[]): void {
+    this.controls = data;
+
+    this.totalControls = data.length;
+    this.completedCount = data.filter((control: ChipsDetail) => this.normalizeStatus(control.STATUS) === "COMPLETED").length;
+    this.pendingCount = data.filter((control: ChipsDetail) => this.normalizeStatus(control.STATUS) === "PENDING").length;
+
+    this.byType = {};
+    data.forEach((control: ChipsDetail) => {
+      const type = control.CTRL_TYPE || "Unknown";
+      this.byType[type] = (this.byType[type] || 0) + 1;
+    });
+
+    this.uniqueControlTypes = Object.keys(this.byType).sort((a, b) => a.localeCompare(b));
+    this.uniqueTeamNames = Array.from(
+      new Set(data.map((control: ChipsDetail) => control.TEAM_NAME || "Unknown"))
+    ).sort((a, b) => a.localeCompare(b));
+
+    this.onFilter(this.activeFilter);
+  }
+
+  private normalizeCreatedRecord(savedRecord: ChipsDetail | void, fallbackRecord: ChipsDetail): ChipsDetail {
+    return (savedRecord && typeof savedRecord === "object" ? savedRecord : fallbackRecord) as ChipsDetail;
+  }
+
+  private getCreateRecordRequest(record: ChipsDetail): Observable<ChipsDetail | void> | null {
+    const service = this.chipsService as ChipsService & Record<string, unknown>;
+    const methodNames = [
+      "createChipsRecord",
+      "addChipsRecord",
+      "createChipRecord",
+      "addChipRecord",
+      "createRecord",
+      "addRecord"
+    ];
+
+    for (const methodName of methodNames) {
+      const candidate = service[methodName];
+      if (typeof candidate !== "function") {
+        continue;
+      }
+
+      const result = (candidate as (payload: ChipsDetail) => unknown).call(this.chipsService, record);
+      if (result && typeof (result as Observable<ChipsDetail | void>).subscribe === "function") {
+        return result as Observable<ChipsDetail | void>;
+      }
+    }
+
+    return null;
   }
 }

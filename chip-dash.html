@@ -111,6 +111,7 @@
 
       <div class="table-actions">
         <button type="button" class="table-action-btn active">Scoring</button>
+        <button type="button" class="table-action-btn table-action-btn-primary" (click)="openAddRecordModal()">Add</button>
         <button type="button" class="table-action-btn" (click)="exportToExcel()">Export</button>
         <button type="button" class="table-action-icon" aria-label="Table settings">
           <i class="pi pi-cog"></i>
@@ -216,4 +217,15 @@
     [teamControls]="selectedComposeTeamControls"
     (close)="closeEmailCompose()">
   </app-email-compose>
+</div>
+
+<div class="modal-backdrop" *ngIf="isAddRecordModalOpen" (click)="closeAddRecordModal()"></div>
+
+<div class="modal-window" *ngIf="isAddRecordModalOpen">
+  <div class="modal-banner modal-banner-error" *ngIf="addRecordError">{{ addRecordError }}</div>
+  <div class="modal-banner modal-banner-neutral" *ngIf="isSavingRecord">Saving record...</div>
+  <app-add-chip-record
+    (save)="saveRecord($event)"
+    (close)="closeAddRecordModal()">
+  </app-add-chip-record>
 </div>
