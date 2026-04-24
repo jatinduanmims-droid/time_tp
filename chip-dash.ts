@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Table, TableModule } from "primeng/table";
@@ -162,7 +163,7 @@ export class ChipDash implements OnInit {
       error: (err: unknown) => {
         console.error("Error creating chips record:", err);
         this.isSavingRecord = false;
-        this.addRecordError = "Unable to save the new record. Please try again.";
+        this.addRecordError = this.formatCreateError(err);
       }
     });
   }
@@ -331,5 +332,24 @@ export class ChipDash implements OnInit {
       ...fallbackRecord,
       ...savedRecord
     };
+  }
+
+  private formatCreateError(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return "Unable to save the new record. Please try again.";
+    }
+
+    if (error.status === 0) {
+      return "Create request could not reach the backend at localhost:8000.";
+    }
+
+    const detail =
+      typeof error.error === "string"
+        ? error.error
+        : typeof error.error?.detail === "string"
+          ? error.error.detail
+          : error.message;
+
+    return `Create failed (${error.status}): ${detail}`;
   }
 }
