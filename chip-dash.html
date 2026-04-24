@@ -119,6 +119,8 @@
       [showCurrentPageReport]="true"
       currentPageReportTemplate="Page {currentPage} of {totalPages}"
       (onPage)="onPagination($event)"
+      [resizableColumns]="true"
+      columnResizeMode="fit"
       class="compact-table modern-table">
 
       <ng-template pTemplate="header">
@@ -126,10 +128,8 @@
           <th
             *ngFor="let col of cols"
             [pSortableColumn]="col.field"
-            [ngClass]="{
-              'wide-col': isWideColumn(col.field),
-              'status-col': isStatusColumn(col.field)
-            }">
+            pResizableColumn
+            [ngClass]="getColumnClass(col.field)">
             <div class="table-head-cell">
               {{ col.header }}
               <p-sortIcon [field]="col.field"></p-sortIcon>
@@ -140,10 +140,7 @@
         <tr>
           <th
             *ngFor="let col of cols"
-            [ngClass]="{
-              'wide-col': isWideColumn(col.field),
-              'status-col': isStatusColumn(col.field)
-            }">
+            [ngClass]="getColumnClass(col.field)">
             <div class="filter-wrapper">
               <i class="pi pi-search"></i>
               <p-columnFilter
@@ -162,11 +159,7 @@
           <td
             *ngFor="let col of cols"
             [attr.title]="row[col.field] || ''"
-            [ngClass]="{
-              'center-cell': col.align === 'center',
-              'wide-col': isWideColumn(col.field),
-              'status-col': isStatusColumn(col.field)
-            }">
+            [ngClass]="getColumnClass(col.field)">
 
             <ng-container *ngIf="col.field === 'STATUS'; else nonStatusCell">
               <span class="status-pill" [ngClass]="getStatusClass(row[col.field])">
@@ -183,7 +176,7 @@
               </ng-container>
 
               <ng-template #defaultCell>
-                <span class="cell-text" [ngClass]="{ 'clamp-text': isWideColumn(col.field) }">
+                <span class="cell-text">
                   {{ row[col.field] || "-" }}
                 </span>
               </ng-template>

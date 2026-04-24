@@ -18,15 +18,15 @@ export class ChipDash implements OnInit {
   selectedView: string = "total";
 
   cols: Array<{ field: string; header: string; align?: "center" }> = [
-    { field: "CTRL_NUMBER", header: "Number" },
-    { field: "CTRL_TITLE", header: "Control" },
+    { field: "CTRL_NUMBER", header: "#" },
+    { field: "CTRL_TITLE", header: "Control Title" },
     { field: "CTRL_TYPE", header: "Type" },
     { field: "CTRL_DESCRIPTION", header: "Description" },
     { field: "CTRL_EVIDENCE", header: "Evidence" },
-    { field: "CTRL_OFFICER_COMMENTS", header: "Comments" },
-    { field: "TEAM_NAME", header: "Team" },
+    { field: "CTRL_OFFICER_COMMENTS", header: "Officer Comments" },
+    { field: "TEAM_NAME", header: "Team Name" },
     { field: "STATUS", header: "Status", align: "center" },
-    { field: "EMAIL_SENT_FLAG", header: "Sent", align: "center" },
+    { field: "EMAIL_SENT_FLAG", header: "Email Sent", align: "center" },
     { field: "ACCEPTANCE_FLAG", header: "Accepted", align: "center" }
   ];
   globalFilterFields: string[] = this.cols.map((col) => col.field);
@@ -211,16 +211,15 @@ export class ChipDash implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  isWideColumn(field: string): boolean {
-    return [
-      "CTRL_DESCRIPTION",
-      "CTRL_EVIDENCE",
-      "CTRL_OFFICER_COMMENTS"
-    ].includes(field);
-  }
-
-  isStatusColumn(field: string): boolean {
-    return ["STATUS", "EMAIL_SENT_FLAG", "ACCEPTANCE_FLAG"].includes(field);
+  getColumnClass(field: string): string {
+    if (field === "CTRL_NUMBER") return "number-col";
+    if (field === "STATUS") return "status-col";
+    if (field === "EMAIL_SENT_FLAG" || field === "ACCEPTANCE_FLAG") return "flag-col";
+    if (field === "CTRL_TYPE" || field === "TEAM_NAME") return "medium-col";
+    if (field === "CTRL_DESCRIPTION" || field === "CTRL_EVIDENCE" || field === "CTRL_OFFICER_COMMENTS") {
+      return "wide-col";
+    }
+    return "";
   }
 
   private formatDateForFileName(date: Date): string {
