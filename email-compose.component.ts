@@ -21,6 +21,10 @@ export class EmailComposeComponent implements OnInit, OnChanges {
   subject = "";
   body = "";
 
+  get attachmentFileName(): string {
+    return `${this.sanitizeFileSegment(this.selectedControl?.TEAM_NAME || "Team")}_Controls.xlsx`;
+  }
+
   ngOnInit(): void {
     if (this.selectedControl) {
       this.initializeComposeState(this.selectedControl, this.teamControls);
@@ -34,7 +38,29 @@ export class EmailComposeComponent implements OnInit, OnChanges {
   }
 
   sendEmail(): void {
-    alert("Send action is mocked for now.");
+    if (!this.teamControls.length) {
+      alert("No team records available for attachment generation.");
+      return;
+    }
+
+    const attachmentFile = this.buildTeamControlsAttachment(this.teamControls, this.selectedControl?.TEAM_NAME || "Team");
+
+    const mockEmailPayload = {
+      to: this.toEmail,
+      controlType: this.controlType,
+      subject: this.subject,
+      body: this.body,
+      attachments: [
+        {
+          fileName: attachmentFile.name,
+          size: attachmentFile.size,
+          mimeType: attachmentFile.type
+        }
+      ]
+    };
+
+    console.log("Mock email send payload:", mockEmailPayload);
+    alert(`Mock send prepared with attachment: ${attachmentFile.name}`);
   }
 
   downloadAttachment(): void {
@@ -43,7 +69,8 @@ export class EmailComposeComponent implements OnInit, OnChanges {
       return;
     }
 
-    this.downloadTeamControlsWorkbook(this.teamControls, this.selectedControl?.TEAM_NAME || "Team");
+    const workbook = this.buildTeamControlsWorkbook(this.teamControls);
+    XLSX.writeFile(workbook, this.attachmentFileName);
   }
 
   cancel(): void {
@@ -72,7 +99,16 @@ export class EmailComposeComponent implements OnInit, OnChanges {
     ].join("\n");
   }
 
-  private downloadTeamControlsWorkbook(teamControls: ChipsDetail[], teamName: string): void {
+  private buildTeamControlsAttachment(teamControls: ChipsDetail[], teamName: string): File {
+    const workbook = this.buildTeamControlsWorkbook(teamControls);
+    const workbookArray = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+
+    return new File([workbookArray], `${this.sanitizeFileSegment(teamName)}_Controls.xlsx`, {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+  }
+
+  private buildTeamControlsWorkbook(teamControls: ChipsDetail[]): XLSX.WorkBook {
     const worksheetData = teamControls.map((control) => ({
       Number: control.CTRL_NUMBER,
       Control: control.CTRL_TITLE,
@@ -91,7 +127,7 @@ export class EmailComposeComponent implements OnInit, OnChanges {
     const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(workbook, worksheet, "Controls");
-    XLSX.writeFile(workbook, `${this.sanitizeFileSegment(teamName)}_Controls.xlsx`);
+    return workbook;
   }
 
   private sanitizeFileSegment(value: string): string {

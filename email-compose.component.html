@@ -8,10 +8,7 @@
       <h1>Email Compose</h1>
     </div>
 
-    <div class="topbar-actions">
-      <button type="button" class="secondary-btn" (click)="cancel()">Back</button>
-      <button type="button" class="primary-btn" (click)="sendEmail()">Send</button>
-    </div>
+    <button type="button" class="close-btn" (click)="cancel()" aria-label="Close compose dialog">x</button>
   </header>
 
   <section class="compose-panel">
@@ -46,6 +43,11 @@
         <h2>Attachment Scope</h2>
         <p>{{ selectedControl?.TEAM_NAME || "Selected team" }}</p>
         <strong>{{ teamControls.length }} record{{ teamControls.length === 1 ? "" : "s" }}</strong>
+        <div class="attachment-box">
+          <span class="attachment-name">{{ attachmentFileName }}</span>
+          <span class="attachment-note">Downloads to your browser's default download folder when you click below.</span>
+        </div>
+        <button type="button" class="secondary-btn full-btn" (click)="downloadAttachment()">Download Attachment</button>
       </div>
 
       <div class="info-card">
@@ -54,12 +56,8 @@
         <strong>{{ selectedControl?.TEAM_NAME || "-" }}</strong>
         <p>Type</p>
         <strong>{{ selectedControl?.CTRL_TYPE || "-" }}</strong>
+        <button type="button" class="primary-btn full-btn send-btn" (click)="sendEmail()">Send</button>
       </div>
     </aside>
-
-    <footer class="compose-footer">
-      <button type="button" class="secondary-btn" (click)="downloadAttachment()">Download Attachment</button>
-      <button type="button" class="ghost-btn" (click)="cancel()">Cancel</button>
-    </footer>
   </section>
 </div>
