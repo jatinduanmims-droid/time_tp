@@ -207,3 +207,13 @@
     </p-table>
   </section>
 </div>
+
+<div class="modal-backdrop" *ngIf="selectedComposeControl" (click)="closeEmailCompose()"></div>
+
+<div class="modal-window" *ngIf="selectedComposeControl">
+  <app-email-compose
+    [selectedControl]="selectedComposeControl"
+    [teamControls]="selectedComposeTeamControls"
+    (close)="closeEmailCompose()">
+  </app-email-compose>
+</div>

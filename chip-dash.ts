@@ -2,13 +2,13 @@ import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { TableModule } from "primeng/table";
-import { Router } from "@angular/router";
 import { ChipsService, ChipsDetail } from "../../services/chips.service";
+import { EmailComposeComponent } from "./email-compose.component";
 
 @Component({
   selector: "app-chip-dash",
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule],
+  imports: [CommonModule, FormsModule, TableModule, EmailComposeComponent],
   templateUrl: "./chip-dash.html",
   styleUrl: "./chip-dash.scss"
 })
@@ -35,6 +35,8 @@ export class ChipDash implements OnInit {
 
   controls: ChipsDetail[] = [];
   displayedControls: ChipsDetail[] = [];
+  selectedComposeControl?: ChipsDetail;
+  selectedComposeTeamControls: ChipsDetail[] = [];
   loading: boolean = false;
 
   totalControls: number = 0;
@@ -47,10 +49,7 @@ export class ChipDash implements OnInit {
   rowsPerPage: number = 10;
   first: number = 0;
 
-  constructor(
-    private chipsService: ChipsService,
-    private router: Router
-  ) {}
+  constructor(private chipsService: ChipsService) {}
 
   ngOnInit(): void {
     this.loadChipsData();
@@ -144,16 +143,15 @@ export class ChipDash implements OnInit {
 
   openEmailCompose(control: ChipsDetail): void {
     const selectedTeamName = control.TEAM_NAME || "Unknown";
-    const teamControls = this.controls.filter(
+    this.selectedComposeControl = control;
+    this.selectedComposeTeamControls = this.controls.filter(
       (item: ChipsDetail) => (item.TEAM_NAME || "Unknown") === selectedTeamName
     );
+  }
 
-    this.router.navigate(["/email-compose"], {
-      state: {
-        selectedControl: control,
-        teamControls
-      }
-    });
+  closeEmailCompose(): void {
+    this.selectedComposeControl = undefined;
+    this.selectedComposeTeamControls = [];
   }
 
   clearFilter(): void {

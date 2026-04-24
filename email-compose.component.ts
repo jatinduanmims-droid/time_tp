@@ -1,14 +1,8 @@
-import { CommonModule, Location } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
 import * as XLSX from "xlsx";
 import { ChipsDetail } from "../../services/chips.service";
-
-type EmailComposeNavigationState = {
-  selectedControl?: ChipsDetail;
-  teamControls?: ChipsDetail[];
-};
 
 @Component({
   selector: "app-email-compose",
@@ -17,36 +11,25 @@ type EmailComposeNavigationState = {
   templateUrl: "./email-compose.component.html",
   styleUrl: "./email-compose.component.scss"
 })
-export class EmailComposeComponent implements OnInit {
-  selectedControl?: ChipsDetail;
-  teamControls: ChipsDetail[] = [];
+export class EmailComposeComponent implements OnInit, OnChanges {
+  @Input() selectedControl?: ChipsDetail;
+  @Input() teamControls: ChipsDetail[] = [];
+  @Output() close = new EventEmitter<void>();
 
   toEmail = "";
   controlType = "";
   subject = "";
   body = "";
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private location: Location
-  ) {}
-
   ngOnInit(): void {
-    const navigation = this.router.getCurrentNavigation();
-    const state = (navigation?.extras.state ?? history.state) as EmailComposeNavigationState;
-
-    if (state?.selectedControl) {
-      this.initializeComposeState(state.selectedControl, state.teamControls ?? []);
-      return;
+    if (this.selectedControl) {
+      this.initializeComposeState(this.selectedControl, this.teamControls);
     }
+  }
 
-    const routeState = this.route.snapshot.paramMap.get("teamName");
-    if (routeState) {
-      this.toEmail = "";
-      this.controlType = "";
-      this.subject = `Action Required: Controls - ${routeState}`;
-      this.body = this.buildEmailBody("", routeState);
+  ngOnChanges(changes: SimpleChanges): void {
+    if ((changes["selectedControl"] || changes["teamControls"]) && this.selectedControl) {
+      this.initializeComposeState(this.selectedControl, this.teamControls);
     }
   }
 
@@ -64,12 +47,7 @@ export class EmailComposeComponent implements OnInit {
   }
 
   cancel(): void {
-    if (window.history.length > 1) {
-      this.location.back();
-      return;
-    }
-
-    this.router.navigate(["/chip-dash"]);
+    this.close.emit();
   }
 
   private initializeComposeState(selectedControl: ChipsDetail, teamControls: ChipsDetail[]): void {
@@ -81,7 +59,7 @@ export class EmailComposeComponent implements OnInit {
     this.body = this.buildEmailBody(this.controlType, selectedControl.TEAM_NAME || "Team");
   }
 
-  private buildEmailBody(controlType: string, teamName: string): string {
+  private buildEmailBody(controlType: string, _teamName: string): string {
     return [
       "Hi Team,",
       "",

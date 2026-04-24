@@ -604,6 +604,20 @@
   font-size: 0.72rem;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 26, 35, 0.48);
+  z-index: 999;
+}
+
+.modal-window {
+  position: fixed;
+  inset: 24px;
+  z-index: 1000;
+  overflow: auto;
+}
+
 @media (max-width: 980px) {
   .dashboard-shell {
     padding: 18px;
