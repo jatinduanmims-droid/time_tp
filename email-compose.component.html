@@ -1,0 +1,65 @@
+<div class="compose-shell">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <header class="compose-topbar">
+    <div>
+      <p class="eyebrow">Operations Monitor</p>
+      <h1>Email Compose</h1>
+    </div>
+
+    <div class="topbar-actions">
+      <button type="button" class="secondary-btn" (click)="cancel()">Back</button>
+      <button type="button" class="primary-btn" (click)="sendEmail()">Send</button>
+    </div>
+  </header>
+
+  <section class="compose-panel">
+    <div class="compose-header">
+      <div class="field-group to-field">
+        <label for="compose-to">To</label>
+        <input id="compose-to" type="email" [(ngModel)]="toEmail" />
+      </div>
+
+      <div class="field-group type-field">
+        <label for="compose-type">Control Type</label>
+        <select id="compose-type" [(ngModel)]="controlType">
+          <option [value]="controlType">{{ controlType || "Not Available" }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="compose-body">
+      <div class="field-group">
+        <label for="compose-subject">Subject</label>
+        <input id="compose-subject" type="text" [(ngModel)]="subject" />
+      </div>
+
+      <div class="field-group body-field">
+        <label for="compose-body">Message</label>
+        <textarea id="compose-body" rows="14" [(ngModel)]="body"></textarea>
+      </div>
+    </div>
+
+    <aside class="compose-sidebar">
+      <div class="info-card">
+        <h2>Attachment Scope</h2>
+        <p>{{ selectedControl?.TEAM_NAME || "Selected team" }}</p>
+        <strong>{{ teamControls.length }} record{{ teamControls.length === 1 ? "" : "s" }}</strong>
+      </div>
+
+      <div class="info-card">
+        <h2>Controls Context</h2>
+        <p>Team</p>
+        <strong>{{ selectedControl?.TEAM_NAME || "-" }}</strong>
+        <p>Type</p>
+        <strong>{{ selectedControl?.CTRL_TYPE || "-" }}</strong>
+      </div>
+    </aside>
+
+    <footer class="compose-footer">
+      <button type="button" class="secondary-btn" (click)="downloadAttachment()">Download Attachment</button>
+      <button type="button" class="ghost-btn" (click)="cancel()">Cancel</button>
+    </footer>
+  </section>
+</div>

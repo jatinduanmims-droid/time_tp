@@ -2,6 +2,7 @@ import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { TableModule } from "primeng/table";
+import { Router } from "@angular/router";
 import { ChipsService, ChipsDetail } from "../../services/chips.service";
 
 @Component({
@@ -15,18 +16,19 @@ export class ChipDash implements OnInit {
   today = new Date();
 
   activeFilter: string = "total";
-  selectedView: string = "total";
+  selectedTypeView: string = "total";
+  selectedTeamView: string = "total";
 
   cols: Array<{ field: string; header: string; align?: "center" }> = [
-    { field: "CTRL_NUMBER", header: "#" },
-    { field: "CTRL_TITLE", header: "Control Title" },
+    { field: "CTRL_NUMBER", header: "Number" },
+    { field: "CTRL_TITLE", header: "Control" },
     { field: "CTRL_TYPE", header: "Type" },
     { field: "CTRL_DESCRIPTION", header: "Description" },
     { field: "CTRL_EVIDENCE", header: "Evidence" },
-    { field: "CTRL_OFFICER_COMMENTS", header: "Officer Comments" },
-    { field: "TEAM_NAME", header: "Team Name" },
+    { field: "CTRL_OFFICER_COMMENTS", header: "Comments" },
+    { field: "TEAM_NAME", header: "Team" },
     { field: "STATUS", header: "Status", align: "center" },
-    { field: "EMAIL_SENT_FLAG", header: "Email Sent", align: "center" },
+    { field: "EMAIL_SENT_FLAG", header: "Sent", align: "center" },
     { field: "ACCEPTANCE_FLAG", header: "Accepted", align: "center" }
   ];
   globalFilterFields: string[] = this.cols.map((col) => col.field);
@@ -40,11 +42,15 @@ export class ChipDash implements OnInit {
   pendingCount: number = 0;
   byType: Record<string, number> = {};
   uniqueControlTypes: string[] = [];
+  uniqueTeamNames: string[] = [];
 
   rowsPerPage: number = 10;
   first: number = 0;
 
-  constructor(private chipsService: ChipsService) {}
+  constructor(
+    private chipsService: ChipsService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadChipsData();
@@ -68,6 +74,9 @@ export class ChipDash implements OnInit {
           this.byType[type] = (this.byType[type] || 0) + 1;
         });
         this.uniqueControlTypes = Object.keys(this.byType).sort((a, b) => a.localeCompare(b));
+        this.uniqueTeamNames = Array.from(
+          new Set(data.map((c: ChipsDetail) => c.TEAM_NAME || "Unknown"))
+        ).sort((a, b) => a.localeCompare(b));
 
         this.loading = false;
       },
@@ -82,6 +91,7 @@ export class ChipDash implements OnInit {
         this.pendingCount = 0;
         this.byType = {};
         this.uniqueControlTypes = [];
+        this.uniqueTeamNames = [];
       }
     });
   }
@@ -94,7 +104,8 @@ export class ChipDash implements OnInit {
   onFilter(filter: string): void {
     this.activeFilter = filter;
     this.first = 0;
-    this.selectedView = filter.startsWith("type:") ? filter.replace("type:", "") : "total";
+    this.selectedTypeView = filter.startsWith("type:") ? filter.replace("type:", "") : "total";
+    this.selectedTeamView = filter.startsWith("team:") ? filter.replace("team:", "") : "total";
 
     if (filter === "total") {
       this.displayedControls = this.controls;
@@ -105,18 +116,44 @@ export class ChipDash implements OnInit {
     } else if (filter.startsWith("type:")) {
       const selectedType = filter.replace("type:", "");
       this.displayedControls = this.controls.filter((c: ChipsDetail) => (c.CTRL_TYPE || "Unknown") === selectedType);
+    } else if (filter.startsWith("team:")) {
+      const selectedTeam = filter.replace("team:", "");
+      this.displayedControls = this.controls.filter((c: ChipsDetail) => (c.TEAM_NAME || "Unknown") === selectedTeam);
     } else {
       this.displayedControls = this.controls;
     }
   }
 
-  onViewChange(selectedType: string): void {
+  onTypeViewChange(selectedType: string): void {
     if (!selectedType || selectedType === "total") {
       this.onFilter("total");
       return;
     }
 
     this.onFilter(`type:${selectedType}`);
+  }
+
+  onTeamViewChange(selectedTeam: string): void {
+    if (!selectedTeam || selectedTeam === "total") {
+      this.onFilter("total");
+      return;
+    }
+
+    this.onFilter(`team:${selectedTeam}`);
+  }
+
+  openEmailCompose(control: ChipsDetail): void {
+    const selectedTeamName = control.TEAM_NAME || "Unknown";
+    const teamControls = this.controls.filter(
+      (item: ChipsDetail) => (item.TEAM_NAME || "Unknown") === selectedTeamName
+    );
+
+    this.router.navigate(["/email-compose"], {
+      state: {
+        selectedControl: control,
+        teamControls
+      }
+    });
   }
 
   clearFilter(): void {
@@ -211,15 +248,16 @@ export class ChipDash implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  getColumnClass(field: string): string {
-    if (field === "CTRL_NUMBER") return "number-col";
-    if (field === "STATUS") return "status-col";
-    if (field === "EMAIL_SENT_FLAG" || field === "ACCEPTANCE_FLAG") return "flag-col";
-    if (field === "CTRL_TYPE" || field === "TEAM_NAME") return "medium-col";
-    if (field === "CTRL_DESCRIPTION" || field === "CTRL_EVIDENCE" || field === "CTRL_OFFICER_COMMENTS") {
-      return "wide-col";
-    }
-    return "";
+  isWideColumn(field: string): boolean {
+    return [
+      "CTRL_DESCRIPTION",
+      "CTRL_EVIDENCE",
+      "CTRL_OFFICER_COMMENTS"
+    ].includes(field);
+  }
+
+  isStatusColumn(field: string): boolean {
+    return ["STATUS", "EMAIL_SENT_FLAG", "ACCEPTANCE_FLAG"].includes(field);
   }
 
   private formatDateForFileName(date: Date): string {
