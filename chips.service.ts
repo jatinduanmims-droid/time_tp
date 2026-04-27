@@ -33,6 +33,18 @@ export interface ChipsStats {
 
 export type CreateChipsDetailPayload = Omit<ChipsDetail, 'ROW_ID' | 'DT_INSERT' | 'DT_UPDATE'>;
 
+export interface ChipsAttachment {
+  FILE_ID: number;
+  ROW_ID: number;
+  ORIGINAL_FILE_NAME: string;
+  STORED_FILE_NAME?: string;
+  CONTENT_TYPE?: string;
+  FILE_SIZE?: number;
+  STORAGE_PATH?: string;
+  UPLOADED_AT?: string;
+  [key: string]: string | number | undefined;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,6 +65,27 @@ export class ChipsService {
     ];
 
     return this.tryCreateRequests(createRequests);
+  }
+
+  getChipsAttachments(rowId: number): Observable<ChipsAttachment[]> {
+    return this.http.get<ChipsAttachment[]>(`${this.baseUrl}/chips_endpoint_security/${rowId}/attachments`);
+  }
+
+  uploadChipsAttachment(rowId: number, file: File): Observable<ChipsAttachment> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    return this.http.post<ChipsAttachment>(`${this.baseUrl}/chips_endpoint_security/${rowId}/attachments`, formData);
+  }
+
+  downloadChipsAttachment(rowId: number, fileId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/chips_endpoint_security/${rowId}/attachments/${fileId}/download`, {
+      responseType: 'blob'
+    });
+  }
+
+  deleteChipsAttachment(rowId: number, fileId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/chips_endpoint_security/${rowId}/attachments/${fileId}`);
   }
 
   constructor(private http: HttpClient) {}

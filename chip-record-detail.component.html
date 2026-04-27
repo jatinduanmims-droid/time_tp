@@ -1,0 +1,86 @@
+<div class="detail-shell">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <button type="button" class="close-btn floating-close-btn" (click)="cancel()" aria-label="Close details dialog">x</button>
+
+  <section class="detail-panel">
+    <div class="detail-header">
+      <div>
+        <p class="eyebrow">Record Details</p>
+        <h2>{{ getFieldValue("CTRL_TITLE") }}</h2>
+      </div>
+      <div class="status-summary">
+        <span class="summary-label">Status</span>
+        <strong>{{ getFieldValue("STATUS") }}</strong>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Core Fields</h3>
+        <div class="detail-list">
+          <div class="detail-item" *ngFor="let field of primaryFields">
+            <span>{{ field.label }}</span>
+            <strong>{{ getFieldValue(field.key) }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-card detail-card-wide">
+        <h3>Extended Context</h3>
+        <div class="narrative-list">
+          <div class="narrative-item" *ngFor="let field of narrativeFields">
+            <span>{{ field.label }}</span>
+            <p>{{ getFieldValue(field.key) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-card detail-card-wide detail-card-full">
+        <div class="attachment-header">
+          <div>
+            <h3>Attachments</h3>
+            <p>Files uploaded for this CHIPS row stay linked to `ROW_ID {{ control?.ROW_ID || "-" }}`.</p>
+          </div>
+          <label class="upload-btn" [class.uploading]="uploadingAttachment">
+            <input
+              type="file"
+              [accept]="acceptedFileTypes"
+              (change)="onAttachmentSelected($event)"
+              [disabled]="uploadingAttachment" />
+            {{ uploadingAttachment ? "Uploading..." : "Upload File" }}
+          </label>
+        </div>
+
+        <div class="attachment-banner attachment-banner-error" *ngIf="attachmentsError">{{ attachmentsError }}</div>
+        <div class="attachment-banner attachment-banner-error" *ngIf="uploadError">{{ uploadError }}</div>
+        <div class="attachment-banner attachment-banner-neutral" *ngIf="attachmentsLoading">Loading attachments...</div>
+
+        <div class="attachment-empty" *ngIf="!attachmentsLoading && !attachments.length">
+          No attachments uploaded for this row yet.
+        </div>
+
+        <div class="attachment-list" *ngIf="attachments.length">
+          <div class="attachment-item" *ngFor="let attachment of attachments">
+            <div class="attachment-copy">
+              <strong>{{ getAttachmentName(attachment) }}</strong>
+              <span>{{ getAttachmentMeta(attachment) || "File metadata unavailable" }}</span>
+            </div>
+
+            <div class="attachment-actions">
+              <button type="button" class="secondary-btn" (click)="downloadAttachment(attachment)">Download</button>
+              <button
+                type="button"
+                class="danger-btn"
+                [disabled]="deletingAttachmentId === attachment.FILE_ID"
+                (click)="deleteAttachment(attachment)">
+                {{ deletingAttachmentId === attachment.FILE_ID ? "Deleting..." : "Delete" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
