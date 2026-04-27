@@ -2,6 +2,45 @@
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
+  <section class="panel upload-panel" [class.compact]="reportGenerated">
+    <div
+      class="upload-dropzone"
+      [class.drag-active]="isDragActive"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onFileDrop($event)">
+      <div class="upload-copy">
+        <p class="eyebrow">Report Upload</p>
+        <h2>{{ reportGenerated ? "Uploaded Source Files" : "Upload Source Files To Generate CHIPS Dashboard" }}</h2>
+        <p>
+          {{ reportGenerated
+            ? "Files stay available for this session until you restart the flow."
+            : "Drag and drop Excel, PDF, Word, ZIP, or any supporting files here, or browse to add multiple files." }}
+        </p>
+      </div>
+
+      <div class="upload-actions">
+        <label class="browse-btn">
+          <input #uploadInput type="file" multiple (change)="onFilesSelected($event)" />
+          Browse Files
+        </label>
+        <button type="button" class="primary-btn" [disabled]="!uploadedFiles.length" (click)="generateReport()">Generate Report</button>
+        <button type="button" class="secondary-btn" (click)="restartFlow()">Restart</button>
+      </div>
+    </div>
+
+    <div class="uploaded-files" *ngIf="uploadedFiles.length">
+      <div class="uploaded-file" *ngFor="let file of uploadedFiles; let fileIndex = index">
+        <div class="uploaded-file-copy">
+          <strong>{{ file.name }}</strong>
+          <span>{{ file.type || "Unknown type" }}{{ file.size ? " • " + ((file.size / 1024) < 1024 ? (file.size / 1024 | number:'1.0-1') + ' KB' : (file.size / 1048576 | number:'1.0-1') + ' MB') : "" }}</span>
+        </div>
+        <button type="button" class="remove-file-btn" (click)="removeUploadedFile(fileIndex)" aria-label="Remove uploaded file">Remove</button>
+      </div>
+    </div>
+  </section>
+
+  <ng-container *ngIf="reportGenerated">
   <header class="topbar">
     <div>
       <p class="eyebrow">Operations Monitor</p>
@@ -9,7 +48,6 @@
     </div>
     <div class="date-pill">Snapshot: {{ today | date: "dd MMM yyyy" }}</div>
   </header>
-
   <section class="panel">
     <div class="panel-head">
       <h2>Today At A Glance</h2>
@@ -112,6 +150,7 @@
       <div class="table-actions">
         <button type="button" class="table-action-btn active">Scoring</button>
         <button type="button" class="table-action-btn table-action-btn-primary" (click)="openAddRecordModal()">Add</button>
+        <button type="button" class="table-action-btn table-action-btn-accent" (click)="openEmailTeamModal()">Email Team</button>
         <button type="button" class="table-action-btn" (click)="exportToExcel()">Export</button>
         <button type="button" class="table-action-icon" aria-label="Table settings">
           <i class="pi pi-cog"></i>
@@ -171,7 +210,7 @@
       </ng-template>
 
       <ng-template pTemplate="body" let-row>
-        <tr class="table-row-link" (click)="openEmailCompose(row)">
+        <tr class="table-row-link" (click)="openDetailModal(row)">
           <td
             *ngFor="let col of cols"
             [attr.title]="row[col.field] || ''"
@@ -207,16 +246,16 @@
       </ng-template>
     </p-table>
   </section>
+  </ng-container>
 </div>
 
-<div class="modal-backdrop" *ngIf="selectedComposeControl" (click)="closeEmailCompose()"></div>
+<div class="modal-backdrop" *ngIf="selectedDetailControl" (click)="closeDetailModal()"></div>
 
-<div class="modal-window" *ngIf="selectedComposeControl">
-  <app-email-compose
-    [selectedControl]="selectedComposeControl"
-    [teamControls]="selectedComposeTeamControls"
-    (close)="closeEmailCompose()">
-  </app-email-compose>
+<div class="modal-window" *ngIf="selectedDetailControl">
+  <app-chip-record-detail
+    [control]="selectedDetailControl"
+    (close)="closeDetailModal()">
+  </app-chip-record-detail>
 </div>
 
 <div class="modal-backdrop" *ngIf="isAddRecordModalOpen" (click)="closeAddRecordModal()"></div>
@@ -228,4 +267,14 @@
     (save)="saveRecord($event)"
     (close)="closeAddRecordModal()">
   </app-add-chip-record>
+</div>
+
+<div class="modal-backdrop" *ngIf="isEmailTeamModalOpen" (click)="closeEmailTeamModal()"></div>
+
+<div class="modal-window" *ngIf="isEmailTeamModalOpen">
+  <app-email-team-compose
+    [controls]="controls"
+    [teamNames]="uniqueTeamNames"
+    (close)="closeEmailTeamModal()">
+  </app-email-team-compose>
 </div>

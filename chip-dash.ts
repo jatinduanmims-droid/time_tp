@@ -1,23 +1,28 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, ElementRef, OnInit, ViewChild } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Table, TableModule } from "primeng/table";
 import { ChipsService, ChipsDetail, CreateChipsDetailPayload } from "./chips.service";
 import { AddChipRecordComponent } from "./add-chip-record.component";
-import { EmailComposeComponent } from "./email-compose.component";
+import { ChipRecordDetailComponent } from "./chip-record-detail.component";
+import { EmailTeamComposeComponent } from "./email-team-compose.component";
 
 @Component({
   selector: "app-chip-dash",
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, EmailComposeComponent, AddChipRecordComponent],
+  imports: [CommonModule, FormsModule, TableModule, AddChipRecordComponent, ChipRecordDetailComponent, EmailTeamComposeComponent],
   templateUrl: "./chip-dash.html",
   styleUrl: "./chip-dash.scss"
 })
 export class ChipDash implements OnInit {
   @ViewChild("dt") dataTable?: Table;
+  @ViewChild("uploadInput") uploadInput?: ElementRef<HTMLInputElement>;
 
   today = new Date();
+  uploadedFiles: File[] = [];
+  reportGenerated = false;
+  isDragActive = false;
 
   activeFilter: string = "total";
   selectedTypeView: string = "total";
@@ -39,8 +44,8 @@ export class ChipDash implements OnInit {
 
   controls: ChipsDetail[] = [];
   displayedControls: ChipsDetail[] = [];
-  selectedComposeControl?: ChipsDetail;
-  selectedComposeTeamControls: ChipsDetail[] = [];
+  selectedDetailControl?: ChipsDetail;
+  isEmailTeamModalOpen = false;
   isAddRecordModalOpen = false;
   isSavingRecord = false;
   addRecordError = "";
@@ -132,10 +137,16 @@ export class ChipDash implements OnInit {
     this.onFilter(`team:${selectedTeam}`);
   }
 
-  openEmailCompose(control: ChipsDetail): void {
-    const selectedTeamName = control.TEAM_NAME || "Unknown";
-    this.selectedComposeControl = control;
-    this.selectedComposeTeamControls = this.getTeamControls(selectedTeamName);
+  openDetailModal(control: ChipsDetail): void {
+    this.selectedDetailControl = control;
+  }
+
+  openEmailTeamModal(): void {
+    this.isEmailTeamModalOpen = true;
+  }
+
+  closeEmailTeamModal(): void {
+    this.isEmailTeamModalOpen = false;
   }
 
   openAddRecordModal(): void {
@@ -168,9 +179,64 @@ export class ChipDash implements OnInit {
     });
   }
 
-  closeEmailCompose(): void {
-    this.selectedComposeControl = undefined;
-    this.selectedComposeTeamControls = [];
+  closeDetailModal(): void {
+    this.selectedDetailControl = undefined;
+  }
+
+  onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const files = input?.files ? Array.from(input.files) : [];
+
+    this.addUploadedFiles(files);
+
+    if (input) {
+      input.value = "";
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragActive = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragActive = false;
+  }
+
+  onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragActive = false;
+
+    const files = event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : [];
+    this.addUploadedFiles(files);
+  }
+
+  removeUploadedFile(index: number): void {
+    this.uploadedFiles = this.uploadedFiles.filter((_, fileIndex) => fileIndex !== index);
+  }
+
+  generateReport(): void {
+    if (!this.uploadedFiles.length) {
+      return;
+    }
+
+    this.reportGenerated = true;
+  }
+
+  restartFlow(): void {
+    this.uploadedFiles = [];
+    this.reportGenerated = false;
+    this.isDragActive = false;
+    this.selectedDetailControl = undefined;
+    this.isEmailTeamModalOpen = false;
+    this.isAddRecordModalOpen = false;
+    this.isSavingRecord = false;
+    this.addRecordError = "";
+
+    if (this.uploadInput) {
+      this.uploadInput.nativeElement.value = "";
+    }
   }
 
   clearFilter(): void {
@@ -294,10 +360,6 @@ export class ChipDash implements OnInit {
       .replace(/'/g, "&#39;");
   }
 
-  private getTeamControls(teamName: string): ChipsDetail[] {
-    return this.controls.filter((item: ChipsDetail) => (item.TEAM_NAME || "Unknown") === teamName);
-  }
-
   private getExportControls(): ChipsDetail[] {
     const filteredRows = this.dataTable?.filteredValue as ChipsDetail[] | null | undefined;
     return filteredRows ?? this.displayedControls;
@@ -351,5 +413,13 @@ export class ChipDash implements OnInit {
           : error.message;
 
     return `Create failed (${error.status}): ${detail}`;
+  }
+
+  private addUploadedFiles(files: File[]): void {
+    if (!files.length) {
+      return;
+    }
+
+    this.uploadedFiles = [...this.uploadedFiles, ...files];
   }
 }
