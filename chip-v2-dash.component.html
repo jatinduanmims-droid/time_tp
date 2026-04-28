@@ -1,0 +1,495 @@
+
+Action: file_editor create /app/output/chip-v2-dash.component.html --file-text "<!-- Top Header (full width) -->
+<header class=\"top-header\" data-testid=\"top-header\">
+  <div class=\"brand\">
+    <div class=\"brand-logo\">
+      <i class=\"pi pi-shield\"></i>
+    </div>
+    <div class=\"brand-text\">
+      <h1 class=\"page-title\">CHIP V2 Dashboard</h1>
+      <p class=\"page-subtitle\">CHIPS Controls &amp; Monitoring</p>
+    </div>
+  </div>
+  <div class=\"header-right\">
+    <div class=\"refresh-pill\" data-testid=\"last-refreshed\">
+      <i class=\"pi pi-calendar\"></i>
+      <div class=\"refresh-col\">
+        <span class=\"refresh-lbl\">Last Refreshed</span>
+        <span class=\"refresh-val\">{{ lastRefreshed | date: \"dd MMM yyyy, h:mm a\" }}</span>
+      </div>
+    </div>
+    <button
+      type=\"button\"
+      class=\"icon-btn\"
+      (click)=\"onRefresh()\"
+      data-testid=\"refresh-btn\"
+      aria-label=\"Refresh\"
+    >
+      <i class=\"pi pi-refresh\"></i>
+    </button>
+    <button type=\"button\" class=\"icon-btn\" data-testid=\"favorite-btn\" aria-label=\"Favorite\">
+      <i class=\"pi pi-star\"></i>
+    </button>
+    <button type=\"button\" class=\"icon-btn\" data-testid=\"menu-btn\" aria-label=\"Menu\">
+      <i class=\"pi pi-ellipsis-v\"></i>
+    </button>
+  </div>
+</header>
+
+<!-- Layout body -->
+<div class=\"layout\" data-testid=\"chip-v2-dash\">
+  <!-- ====================== SIDEBAR ====================== -->
+  <aside class=\"sidebar\" data-testid=\"upload-sidebar\">
+    <div>
+      <div class=\"sb-header\">
+        <h3 class=\"sb-title\">Upload Files</h3>
+        <span class=\"info-i\" aria-hidden=\"true\">
+          <i class=\"pi pi-info-circle\"></i>
+        </span>
+      </div>
+      <div
+        class=\"dropzone\"
+        [class.drag-active]=\"isDragActive\"
+        (dragover)=\"onDragOver($event)\"
+        (dragleave)=\"onDragLeave($event)\"
+        (drop)=\"onFileDrop($event)\"
+        data-testid=\"upload-dropzone\"
+      >
+        <div class=\"cloud\">
+          <i class=\"pi pi-cloud-upload\"></i>
+        </div>
+        <p class=\"dz-text\">Drag &amp; drop files here</p>
+        <p class=\"dz-or\">or</p>
+        <label class=\"browse-btn\" data-testid=\"browse-files-btn\">
+          <i class=\"pi pi-folder-open\"></i>
+          Browse Files
+          <input
+            #uploadInput
+            type=\"file\"
+            multiple
+            (change)=\"onFilesSelected($event)\"
+            hidden
+          />
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <div class=\"files-head\">
+        <span class=\"files-ttl\">Uploaded Files ({{ uploadedFiles.length }})</span>
+        <button
+          type=\"button\"
+          class=\"clear-all-btn\"
+          (click)=\"clearAllUploadedFiles()\"
+          [disabled]=\"!uploadedFiles.length\"
+          data-testid=\"clear-all-files-btn\"
+        >
+          <i class=\"pi pi-trash\"></i> Clear All
+        </button>
+      </div>
+      <div class=\"files-list\" *ngIf=\"uploadedFiles.length; else emptyFiles\">
+        <div
+          class=\"file-item\"
+          *ngFor=\"let file of uploadedFiles; let i = index\"
+          [attr.data-testid]=\"'file-item-' + i\"
+        >
+          <div class=\"file-icon\" [ngClass]=\"getFileExt(file.name)\">
+            {{ getFileExt(file.name).toUpperCase() }}
+          </div>
+          <div class=\"file-meta\">
+            <div class=\"file-name\">{{ file.name }}</div>
+            <div class=\"file-size\">{{ formatFileSize(file.size) }}</div>
+          </div>
+          <button
+            type=\"button\"
+            class=\"x-btn\"
+            (click)=\"removeUploadedFile(i)\"
+            [attr.data-testid]=\"'remove-file-' + i\"
+            aria-label=\"Remove file\"
+          >
+            <i class=\"pi pi-times\"></i>
+          </button>
+        </div>
+      </div>
+      <ng-template #emptyFiles>
+        <p class=\"files-empty\">No files uploaded yet.</p>
+      </ng-template>
+    </div>
+
+    <div class=\"att-block\">
+      <h4 class=\"att-title\">Attestation Detail</h4>
+      <div class=\"form-field\">
+        <label for=\"attestedBy\">Attested By</label>
+        <input
+          id=\"attestedBy\"
+          type=\"text\"
+          class=\"text-input\"
+          placeholder=\"Enter name or select\"
+          [(ngModel)]=\"attestedBy\"
+          data-testid=\"attested-by-input\"
+        />
+      </div>
+      <div class=\"form-field\">
+        <label for=\"attestedDate\">Attested Date</label>
+        <input
+          id=\"attestedDate\"
+          type=\"date\"
+          class=\"text-input\"
+          placeholder=\"dd-mm-yyyy\"
+          [(ngModel)]=\"attestedDate\"
+          data-testid=\"attested-date-input\"
+        />
+      </div>
+    </div>
+
+    <div class=\"sb-actions\">
+      <button
+        type=\"button\"
+        class=\"btn btn-primary btn-block\"
+        (click)=\"generateReport()\"
+        [disabled]=\"!uploadedFiles.length\"
+        data-testid=\"generate-report-btn\"
+      >
+        <i class=\"pi pi-chart-line\"></i> Generate Report
+      </button>
+      <button
+        type=\"button\"
+        class=\"btn btn-outline-brand btn-block\"
+        (click)=\"restartFlow()\"
+        data-testid=\"restart-clear-btn\"
+      >
+        <i class=\"pi pi-replay\"></i> Restart / Clear
+      </button>
+    </div>
+  </aside>
+
+  <!-- ====================== MAIN ====================== -->
+  <main class=\"main\" data-testid=\"main-content\">
+    <!-- Filter card -->
+    <section class=\"filter-card\" data-testid=\"filter-bar\">
+      <div class=\"filter-row\">
+        <span class=\"filter-label\">Control Name</span>
+        <div class=\"search-input-shell\">
+          <input
+            class=\"search-input\"
+            placeholder=\"Search by control name...\"
+            [(ngModel)]=\"controlNameQuery\"
+            data-testid=\"control-name-search\"
+          />
+          <i class=\"pi pi-search right\"></i>
+        </div>
+      </div>
+      <div class=\"filter-row split\">
+        <div class=\"radios\" role=\"radiogroup\">
+          <label class=\"radio-opt\">
+            <input
+              type=\"radio\"
+              name=\"controlsViewMode\"
+              value=\"all\"
+              [(ngModel)]=\"viewMode\"
+              data-testid=\"radio-all-controls\"
+            />
+            All Controls
+          </label>
+          <label class=\"radio-opt\">
+            <input
+              type=\"radio\"
+              name=\"controlsViewMode\"
+              value=\"radio\"
+              [(ngModel)]=\"viewMode\"
+              data-testid=\"radio-buttons\"
+            />
+            Radio Buttons
+          </label>
+        </div>
+        <label class=\"toggle\" data-testid=\"filter-toggle\">
+          <input type=\"checkbox\" [(ngModel)]=\"filterToggleEnabled\" />
+          <span class=\"track\"></span>
+          <span class=\"thumb\"></span>
+        </label>
+      </div>
+      <div class=\"filter-row\">
+        <span class=\"filter-label\">Years</span>
+        <div class=\"select-shell\" style=\"justify-self: start\">
+          <select
+            class=\"select-input\"
+            [(ngModel)]=\"yearFilter\"
+            data-testid=\"year-select\"
+          >
+            <option value=\"\">Select year</option>
+            <option *ngFor=\"let year of yearOptions\" [value]=\"year\">{{ year }}</option>
+          </select>
+          <i class=\"pi pi-chevron-down\"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI Cards -->
+    <section class=\"kpi-row\" data-testid=\"kpi-row\">
+      <button
+        type=\"button\"
+        class=\"kpi-card blue\"
+        [class.active]=\"activeFilter === 'total'\"
+        (click)=\"onFilter('total')\"
+        data-testid=\"kpi-total\"
+      >
+        <div class=\"kpi-top\">
+          <div class=\"kpi-icon\"><i class=\"pi pi-shield\"></i></div>
+          <div class=\"kpi-body\">
+            <span class=\"kpi-label\">Total Controls</span>
+            <strong class=\"kpi-value\">{{ totalControls | number }}</strong>
+          </div>
+        </div>
+        <div class=\"kpi-foot\">All unique controls</div>
+      </button>
+
+      <button
+        type=\"button\"
+        class=\"kpi-card green\"
+        [class.active]=\"activeFilter === 'completed'\"
+        (click)=\"onFilter('completed')\"
+        data-testid=\"kpi-completed\"
+      >
+        <div class=\"kpi-top\">
+          <div class=\"kpi-icon\"><i class=\"pi pi-check-circle\"></i></div>
+          <div class=\"kpi-body\">
+            <span class=\"kpi-label\">Completed</span>
+            <strong class=\"kpi-value\">{{ completedCount | number }}</strong>
+          </div>
+        </div>
+        <div class=\"kpi-foot\">
+          {{ totalControls ? ((completedCount / totalControls) * 100 | number: \"1.1-1\") : 0 }}%
+        </div>
+      </button>
+
+      <button
+        type=\"button\"
+        class=\"kpi-card orange\"
+        [class.active]=\"activeFilter === 'pending'\"
+        (click)=\"onFilter('pending')\"
+        data-testid=\"kpi-pending\"
+      >
+        <div class=\"kpi-top\">
+          <div class=\"kpi-icon\"><i class=\"pi pi-clock\"></i></div>
+          <div class=\"kpi-body\">
+            <span class=\"kpi-label\">Pending</span>
+            <strong class=\"kpi-value\">{{ pendingCount | number }}</strong>
+          </div>
+        </div>
+        <div class=\"kpi-foot\">
+          {{ totalControls ? ((pendingCount / totalControls) * 100 | number: \"1.1-1\") : 0 }}%
+        </div>
+      </button>
+
+      <button
+        type=\"button\"
+        class=\"kpi-card red\"
+        [class.active]=\"activeFilter === 'overdue'\"
+        (click)=\"onFilter('overdue')\"
+        data-testid=\"kpi-overdue\"
+      >
+        <div class=\"kpi-top\">
+          <div class=\"kpi-icon\"><i class=\"pi pi-exclamation-triangle\"></i></div>
+          <div class=\"kpi-body\">
+            <span class=\"kpi-label\">Overdue</span>
+            <strong class=\"kpi-value\">{{ overdueCount | number }}</strong>
+          </div>
+        </div>
+        <div class=\"kpi-foot\">
+          {{ totalControls ? ((overdueCount / totalControls) * 100 | number: \"1.1-1\") : 0 }}%
+        </div>
+      </button>
+    </section>
+
+    <!-- Tabs (underline style) -->
+    <nav class=\"tabs-row\" data-testid=\"control-tabs\" aria-label=\"Control filters\">
+      <button
+        type=\"button\"
+        class=\"tab\"
+        [class.active]=\"activeControlTab === 'all'\"
+        (click)=\"onSelectControlTab('all')\"
+        data-testid=\"tab-all\"
+      >
+        All Controls
+      </button>
+      <button
+        type=\"button\"
+        class=\"tab\"
+        *ngFor=\"let type of uniqueControlTypes\"
+        [class.active]=\"activeControlTab === type\"
+        (click)=\"onSelectControlTab(type)\"
+        [attr.data-testid]=\"'tab-' + type\"
+      >
+        {{ type }}
+      </button>
+      <button class=\"tabs-arrow\" type=\"button\" aria-label=\"More tabs\">
+        <i class=\"pi pi-chevron-right\"></i>
+      </button>
+    </nav>
+
+    <!-- Table card -->
+    <section class=\"table-card\" data-testid=\"table-section\">
+      <div class=\"table-toolbar\">
+        <div class=\"ttl-left\">
+          <div class=\"search-input-shell compact\">
+            <i class=\"pi pi-search\"></i>
+            <input
+              class=\"search-input\"
+              placeholder=\"Search in table...\"
+              [(ngModel)]=\"tableSearchQuery\"
+              (input)=\"applyTableSearch()\"
+              data-testid=\"table-search-input\"
+            />
+          </div>
+          <button type=\"button\" class=\"btn btn-ghost\" data-testid=\"columns-btn\">
+            <i class=\"pi pi-th-large\"></i> Columns
+          </button>
+        </div>
+        <div class=\"ttl-right\">
+          <button
+            type=\"button\"
+            class=\"btn btn-ghost\"
+            (click)=\"exportToExcel()\"
+            data-testid=\"export-btn\"
+          >
+            <i class=\"pi pi-download\"></i> Export
+          </button>
+          <button
+            type=\"button\"
+            class=\"btn btn-primary btn-add\"
+            (click)=\"openAddRecordModal()\"
+            data-testid=\"add-record-btn\"
+          >
+            <i class=\"pi pi-plus\"></i> Add Record
+          </button>
+        </div>
+      </div>
+
+      <p-table
+        #dt
+        [value]=\"displayedControls\"
+        [columns]=\"cols\"
+        [paginator]=\"true\"
+        [rows]=\"rowsPerPage\"
+        [first]=\"first\"
+        [rowsPerPageOptions]=\"[10, 20, 50]\"
+        [globalFilterFields]=\"globalFilterFields\"
+        [showCurrentPageReport]=\"true\"
+        currentPageReportTemplate=\"Showing {first} to {last} of {totalRecords} entries\"
+        [loading]=\"loading\"
+        styleClass=\"v2-table\"
+        (onPage)=\"onPagination($event)\"
+        dataKey=\"ROW_ID\"
+        responsiveLayout=\"scroll\"
+      >
+        <ng-template pTemplate=\"header\" let-columns>
+          <tr>
+            <th
+              *ngFor=\"let col of columns\"
+              [pSortableColumn]=\"col.field\"
+              [class.center]=\"col.align === 'center'\"
+            >
+              {{ col.header }}
+              <p-sortIcon [field]=\"col.field\"></p-sortIcon>
+            </th>
+            <th class=\"center\">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate=\"body\" let-row let-columns=\"columns\">
+          <tr
+            class=\"table-row-link\"
+            (click)=\"openDetailModal(row)\"
+            [attr.data-testid]=\"'row-' + row.ROW_ID\"
+          >
+            <td *ngFor=\"let col of columns\" [class.center]=\"col.align === 'center'\">
+              <ng-container [ngSwitch]=\"col.field\">
+                <ng-container *ngSwitchCase=\"'CTRL_TYPE'\">
+                  <span [class]=\"getTypeClass(row[col.field])\">
+                    {{ row[col.field] || \"—\" }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngSwitchCase=\"'STATUS'\">
+                  <span [class]=\"getStatusClass(row[col.field])\">
+                    {{ row[col.field] || \"Unknown\" }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngSwitchCase=\"'EMAIL_SENT_FLAG'\">
+                  <span [class]=\"getFlagClass(row[col.field])\">
+                    {{ normalizeStatus(row[col.field]) === \"Y\" ? \"Y\" : \"N\" }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngSwitchCase=\"'ACCEPTANCE_FLAG'\">
+                  <span [class]=\"getFlagClass(row[col.field])\">
+                    {{ normalizeStatus(row[col.field]) === \"Y\" ? \"Y\" : \"N\" }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngSwitchDefault>
+                  <span class=\"cell-text\">{{ row[col.field] || \"—\" }}</span>
+                </ng-container>
+              </ng-container>
+            </td>
+            <td class=\"center\">
+              <button
+                type=\"button\"
+                class=\"more-btn\"
+                (click)=\"$event.stopPropagation(); openDetailModal(row)\"
+                aria-label=\"Row actions\"
+              >
+                <i class=\"pi pi-ellipsis-v\"></i>
+              </button>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate=\"emptymessage\">
+          <tr>
+            <td [attr.colspan]=\"cols.length + 1\" class=\"empty-row\">
+              No records to display.
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+  </main>
+</div>
+
+<!-- Modals (reused) -->
+<ng-container *ngIf=\"selectedDetailControl\">
+  <div class=\"modal-backdrop\" (click)=\"closeDetailModal()\"></div>
+  <div class=\"modal-window\">
+    <app-chip-record-detail
+      [control]=\"selectedDetailControl\"
+      (close)=\"closeDetailModal()\"
+    ></app-chip-record-detail>
+  </div>
+</ng-container>
+
+<ng-container *ngIf=\"isEmailTeamModalOpen\">
+  <div class=\"modal-backdrop\" (click)=\"closeEmailTeamModal()\"></div>
+  <div class=\"modal-window\">
+    <app-email-team-compose (close)=\"closeEmailTeamModal()\"></app-email-team-compose>
+  </div>
+</ng-container>
+
+<ng-container *ngIf=\"isAddRecordModalOpen\">
+  <div class=\"modal-backdrop\" (click)=\"closeAddRecordModal()\"></div>
+  <div class=\"modal-window\">
+    <div *ngIf=\"addRecordError\" class=\"modal-banner modal-banner-error\">
+      {{ addRecordError }}
+    </div>
+    <div *ngIf=\"isSavingRecord\" class=\"modal-banner modal-banner-neutral\">
+      Saving record...
+    </div>
+    <app-add-chip-record
+      (save)=\"saveRecord($event)\"
+      (cancel)=\"closeAddRecordModal()\"
+    ></app-add-chip-record>
+  </div>
+</ng-container>
+"
+Observation: Overwrite successful: /app/output/chip-v2-dash.component.html
